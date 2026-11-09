@@ -47,10 +47,10 @@ azf/
 │   ├── dune
 │   └── web_app_with_storage.ml # Farmer's canonical example
 └── test/
-    ├── dune
-    ├── core/                   # Arm_expression, Resource_id, Deployment.emit
-    ├── resources/              # golden tests: builder -> expected JSON
-    └── golden/                 # expected ARM template JSON files
+    ├── core/                   # expect tests: Arm_expression, Resource_id, Deployment.emit
+    │   └── dune                # (inline_tests) (preprocess (pps ppx_expect))
+    └── resources/              # expect tests: builder -> emitted JSON
+        └── dune
 ```
 
 - `src/core` depends only on `yojson`; `src/resources` depends only on `src/core`. One module per Azure resource keeps new resources additive.
@@ -85,7 +85,15 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 
 ## 7. Testing
 
-- Golden/snapshot tests: builder → expected JSON template.
+- Expect tests (`ppx_expect`): each test builds a resource or deployment, prints the emitted JSON with `Yojson.Safe.pretty_to_string`, and compares it against an inline `[%expect]` block. Update the expected output with `dune runtest --auto-promote`.
+
+  ```ocaml
+  let%expect_test "storage account" =
+    Storage_account.build [ Storage_account.name "mystorage" ]
+    |> Storage_account.to_arm_resource |> Arm_resource.to_json
+    |> Yojson.Safe.pretty_to_string |> print_endline;
+    [%expect {| { "type": "Microsoft.Storage/storageAccounts", ... } |}]
+  ```
 - Validation: emitted templates pass `az deployment group validate` or the ARM template schema.
 
 ## 8. Later enhancements
