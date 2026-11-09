@@ -16,9 +16,10 @@ val resource_group_location : t
 (** [resourceGroup().location] *)
 
 val to_string : t -> string
-(** Template string form. Literal strings are returned as-is (a leading ['['] is
-    escaped as ["[["]); everything else is wrapped in brackets, e.g.
-    ["[resourceId('Microsoft.Web/sites', 'myapp')]"]. *)
+(** Template string form. Literal strings are returned as-is, with a leading
+    bracket doubled so ARM does not parse them as expressions; everything else
+    is wrapped in brackets, e.g.
+    [{|"[resourceId('Microsoft.Web/sites', 'myapp')]"|}]. *)
 
 val to_json : t -> Yojson.Safe.t
 (** Literal [Int] and [Bool] become JSON numbers/booleans; everything else is a
