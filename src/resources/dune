@@ -1,0 +1,4 @@
+(library
+ (name azf_resources)
+ (public_name azf.resources)
+ (libraries azf yojson))

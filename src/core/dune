@@ -1,0 +1,4 @@
+(library
+ (name azf)
+ (public_name azf)
+ (libraries yojson))
