@@ -33,7 +33,7 @@ azf/
 │   │   ├── arm_resource.ml(i)
 │   │   ├── parameter.ml(i)
 │   │   ├── output.ml(i)
-│   │   └── deployment.ml(i)    # Deployment.t, emit
+│   │   └── deployment.ml(i)    # Deployment.t, to_string
 │   ├── resources/              # library `azf.resources` (module Azf_resources)
 │   │   ├── dune
 │   │   ├── storage_account.ml(i)
@@ -46,13 +46,13 @@ azf/
 │   ├── dune
 │   └── web_app_with_storage.ml # Farmer's canonical example
 └── test/
-    ├── core/                   # expect tests: Arm_expression, Resource_id, Deployment.emit
+    ├── core/                   # expect tests: Arm_expression, Resource_id, Deployment.to_string
     │   └── dune                # (inline_tests) (preprocess (pps ppx_expect))
     └── resources/              # expect tests: builder -> emitted JSON
         └── dune
 ```
 
-- `src/core` depends only on `yojson` and `ppx_yojson_conv`; `src/resources` depends only on `src/core`. One module per Azure resource keeps new resources additive.
+- `src/core` depends only on `yojson` and `ppx_yojson_conv`, kept behind the API: users get templates as strings (`Deployment.to_string`) and never need `Yojson`; only resource modules touch it via `Arm_resource.properties`; `src/resources` depends only on `src/core`. One module per Azure resource keeps new resources additive.
 - `src/deploy` is a separate sub-library (`azf.deploy`), so code that only emits templates does not link process/HTTP dependencies.
 - Each module has an `.mli`, so the public API is explicit and documented with odoc, as in `azure-cosmos-db`.
 
@@ -60,7 +60,7 @@ azf/
 
 - `Arm_resource.t` — `{ type_name; api_version; name; properties : Yojson.Safe.t; depends_on; location; tags }`.
 - `Deployment.t` — collection of resources + parameters + outputs.
-- `emit : Deployment.t -> Yojson.Safe.t` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
+- `Deployment.to_string : Deployment.t -> string` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
 - `Arm_expression` AST for ARM template functions (`resourceId`, `concat`, `reference`, `parameters`, `variables`) that serializes to `"[resourceId('Microsoft.Web/sites', name)]"` strings.
 
 ## 4. Resources (incremental)
@@ -84,13 +84,13 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 
 ## 7. Testing
 
-- Expect tests (`ppx_expect`): each test builds a resource or deployment, prints the emitted JSON with `Yojson.Safe.pretty_to_string`, and compares it against an inline `[%expect]` block. Update the expected output with `dune runtest --auto-promote`.
+- Expect tests (`ppx_expect`): each test builds a resource or deployment, prints the emitted JSON with `Arm_resource.to_string` or `Deployment.to_string`, and compares it against an inline `[%expect]` block. Update the expected output with `dune runtest --auto-promote`.
 
   ```ocaml
   let%expect_test "storage account" =
-    Storage_account.build [ Storage_account.name "mystorage" ]
-    |> Storage_account.to_arm_resource |> Arm_resource.to_json
-    |> Yojson.Safe.pretty_to_string |> print_endline;
+    Storage_account.(build [ name "mystorage" ])
+    |> Result.get_ok |> Storage_account.to_arm_resource
+    |> Arm_resource.to_string |> print_endline;
     [%expect {| { "type": "Microsoft.Storage/storageAccounts", ... } |}]
   ```
 - Validation: emitted templates pass `az deployment group validate` or the ARM template schema.

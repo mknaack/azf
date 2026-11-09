@@ -5,16 +5,5 @@ let string name value = { name; output_type = String; value }
 let int name value = { name; output_type = Int; value }
 let bool name value = { name; output_type = Bool; value }
 
-let yojson_of_output_type = function
-  | String -> `String "string"
-  | Int -> `String "int"
-  | Bool -> `String "bool"
-
-type definition = {
-  output_type : output_type; [@key "type"]
-  value : Arm_expression.t;
-}
-[@@deriving yojson_of]
-
-let to_definition ({ name; output_type; value } : t) =
-  (name, yojson_of_definition { output_type; value })
+let type_name t =
+  match t.output_type with String -> "string" | Int -> "int" | Bool -> "bool"

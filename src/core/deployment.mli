@@ -21,6 +21,6 @@ val schema : string
 (** ["https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"]
 *)
 
-val emit : t -> Yojson.Safe.t
-(** The ARM template. Resources, parameters and outputs keep the order they were
-    added in. *)
+val to_string : t -> string
+(** The ARM template as pretty-printed JSON. Resources, parameters and outputs
+    keep the order they were added in. *)

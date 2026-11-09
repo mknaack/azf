@@ -1,6 +1,5 @@
 open Azf
 
-let print_json json = print_endline (Yojson.Safe.pretty_to_string json)
 let print_expr e = print_endline (Arm_expression.to_string e)
 let site = Resource_id.make ~type_name:"Microsoft.Web/sites" "myapp"
 
@@ -35,18 +34,6 @@ let%expect_test "expressions" =
     [resourceGroup().location]
     |}]
 
-let%expect_test "expression json" =
-  print_json
-    (`List
-       Arm_expression.
-         [
-           yojson_of_t (Int 1);
-           yojson_of_t (Bool false);
-           yojson_of_t (String "x");
-           yojson_of_t (Parameters "p");
-         ]);
-  [%expect {| [ 1, false, "x", "[parameters('p')]" ] |}]
-
 let%expect_test "resource id equality" =
   Printf.printf "%b %b %b\n"
     (Resource_id.equal site
@@ -71,7 +58,7 @@ let minimal_resource : Arm_resource.t =
   }
 
 let%expect_test "minimal resource omits optional fields" =
-  print_json (Arm_resource.yojson_of_t minimal_resource);
+  print_endline (Arm_resource.to_string minimal_resource);
   [%expect
     {|
     {
@@ -83,8 +70,8 @@ let%expect_test "minimal resource omits optional fields" =
     |}]
 
 let%expect_test "full resource" =
-  print_json
-    (Arm_resource.yojson_of_t
+  print_endline
+    (Arm_resource.to_string
        {
          minimal_resource with
          location = Some (String "westeurope");
@@ -114,7 +101,7 @@ let%expect_test "resource id of resource" =
   [%expect {| Microsoft.Web/serverfarms myplan |}]
 
 let%expect_test "empty deployment" =
-  print_json (Deployment.emit Deployment.empty);
+  print_endline (Deployment.to_string Deployment.empty);
   [%expect
     {|
     {
@@ -145,7 +132,7 @@ let%expect_test "deployment with parameters, resources and outputs" =
         Deployment.add_output (Output.bool "on" (Parameters "enabled"));
       ]
   in
-  print_json (Deployment.emit deployment);
+  print_endline (Deployment.to_string deployment);
   [%expect
     {|
     {
@@ -184,18 +171,32 @@ let%expect_test "deployment with parameters, resources and outputs" =
     |}]
 
 let%expect_test "sku omits unset fields" =
-  print_json (Sku.yojson_of_t (Sku.make "Standard_LRS"));
-  print_json
-    (Sku.yojson_of_t
-       (Sku.make ~tier:"Standard" ~size:"S1" ~family:"S" ~capacity:2 "S1"));
+  let print_sku sku =
+    print_endline
+      (Arm_resource.to_string { minimal_resource with sku = Some sku })
+  in
+  print_sku (Sku.make "Standard_LRS");
+  print_sku (Sku.make ~tier:"Standard" ~size:"S1" ~family:"S" ~capacity:2 "S1");
   [%expect
     {|
-    { "name": "Standard_LRS" }
     {
-      "name": "S1",
-      "tier": "Standard",
-      "size": "S1",
-      "family": "S",
-      "capacity": 2
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "myplan",
+      "sku": { "name": "Standard_LRS" },
+      "properties": {}
+    }
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "myplan",
+      "sku": {
+        "name": "S1",
+        "tier": "Standard",
+        "size": "S1",
+        "family": "S",
+        "capacity": 2
+      },
+      "properties": {}
     }
     |}]

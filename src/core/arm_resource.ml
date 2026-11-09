@@ -28,3 +28,4 @@ type t = {
 [@@deriving yojson_of]
 
 let resource_id t = Resource_id.make ~type_name:t.type_name t.name
+let to_string t = Yojson.Safe.pretty_to_string (yojson_of_t t)
