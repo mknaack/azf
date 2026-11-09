@@ -13,7 +13,7 @@ Replicate Farmer's three layers:
 ## 2. Project skeleton
 
 - `dune-project` + opam files, mirroring the structure of `mknaack/azure-cosmos-db` (core package, optional extras).
-- JSON: `yojson` for hand-written serializers, or `atdgen` for schema-driven ARM resource types.
+- JSON: `yojson` only (no `atdgen`); serializers produce `Yojson.Safe.t` directly.
 - DSL style: `config -> config` transformer lists (closest OCaml analogue to F# computation expressions). Prototype this on one resource before committing, since it determines the ergonomics of the whole library.
 
 ### Folder layout
@@ -53,7 +53,7 @@ azf/
     └── golden/                 # expected ARM template JSON files
 ```
 
-- `src/core` depends only on the JSON library (`yojson`/`atdgen`); `src/resources` depends only on `src/core`. One module per Azure resource keeps new resources additive.
+- `src/core` depends only on `yojson`; `src/resources` depends only on `src/core`. One module per Azure resource keeps new resources additive.
 - `src/deploy` is a separate opam package so the core library stays free of process/HTTP dependencies.
 - Each module has an `.mli`, so the public API is explicit and documented with odoc, as in `azure-cosmos-db`.
 
