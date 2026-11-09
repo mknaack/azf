@@ -23,5 +23,5 @@ let () =
       print_endline
         (Yojson.Safe.pretty_to_string (Deployment.emit (deployment storage)))
   | Error e ->
-      prerr_endline (Storage_account.error_to_string e);
+      prerr_endline (Storage_account.string_of_error e);
       exit 1

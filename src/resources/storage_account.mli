@@ -42,7 +42,7 @@ type t
 
 type error = Missing_name | Invalid_name of string
 
-val error_to_string : error -> string
+val string_of_error : error -> string
 val type_name : string
 val api_version : string
 
