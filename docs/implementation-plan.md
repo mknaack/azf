@@ -70,7 +70,7 @@ Start with 2–3 resources to validate the design:
 - `Microsoft.Storage/storageAccounts`
 - `Microsoft.Web/serverfarms` + `Microsoft.Web/sites` (Farmer's canonical example, proves dependencies)
 
-Each resource module: a `config` record with defaults, transformer functions (`name`, `sku`, `add_tags`, `depends_on`), and a `to_arm_resource` function. Use a typed `ResourceId` for cross-resource references so `depends_on` isn't stringly-typed.
+Each resource module: a `config` record with defaults, transformer functions (`name`, `sku`, `add_tags`, `depends_on`), a `to_arm_resource` function, and one submodule per option type (e.g. `Storage_account.Sku`, `Kind`, `Error`), each with its own `t` and `to_string`. Use a typed `ResourceId` for cross-resource references so `depends_on` isn't stringly-typed.
 
 ## 5. Parameters, outputs, secrets
 
