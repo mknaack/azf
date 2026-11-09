@@ -16,6 +16,47 @@ Replicate Farmer's three layers:
 - JSON: `yojson` for hand-written serializers, or `atdgen` for schema-driven ARM resource types.
 - DSL style: `config -> config` transformer lists (closest OCaml analogue to F# computation expressions). Prototype this on one resource before committing, since it determines the ergonomics of the whole library.
 
+### Folder layout
+
+```
+azf/
+├── dune-project
+├── azf.opam                    # core package: engine + resources
+├── azf-deploy.opam             # optional package: deployment (az CLI, later ARM REST)
+├── README.md
+├── docs/
+│   └── implementation-plan.md
+├── src/
+│   ├── core/                   # library `azf` (module Azf): no Azure resource knowledge
+│   │   ├── dune
+│   │   ├── arm_expression.ml(i)
+│   │   ├── resource_id.ml(i)
+│   │   ├── arm_resource.ml(i)
+│   │   ├── parameter.ml(i)
+│   │   ├── output.ml(i)
+│   │   └── deployment.ml(i)    # Deployment.t, emit
+│   ├── resources/              # library `azf.resources` (module Azf_resources)
+│   │   ├── dune
+│   │   ├── storage_account.ml(i)
+│   │   ├── server_farm.ml(i)
+│   │   └── web_app.ml(i)
+│   └── deploy/                 # library `azf-deploy` (module Azf_deploy)
+│       ├── dune
+│       └── az_cli.ml(i)        # shells out to `az deployment group create`
+├── examples/
+│   ├── dune
+│   └── web_app_with_storage.ml # Farmer's canonical example
+└── test/
+    ├── dune
+    ├── core/                   # Arm_expression, Resource_id, Deployment.emit
+    ├── resources/              # golden tests: builder -> expected JSON
+    └── golden/                 # expected ARM template JSON files
+```
+
+- `src/core` depends only on the JSON library (`yojson`/`atdgen`); `src/resources` depends only on `src/core`. One module per Azure resource keeps new resources additive.
+- `src/deploy` is a separate opam package so the core library stays free of process/HTTP dependencies.
+- Each module has an `.mli`, so the public API is explicit and documented with odoc, as in `azure-cosmos-db`.
+
 ## 3. Core engine (build first, before any Azure resources)
 
 - `Arm_resource.t` — `{ type_name; api_version; name; properties : Yojson.Safe.t; depends_on; location; tags }`.
