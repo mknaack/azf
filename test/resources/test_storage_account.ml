@@ -6,7 +6,7 @@ let print_result = function
       Storage_account.to_arm_resource account
       |> Arm_resource.yojson_of_t |> Yojson.Safe.pretty_to_string
       |> print_endline
-  | Error e -> print_endline (Storage_account.string_of_error e)
+  | Error e -> print_endline (Storage_account.Error.to_string e)
 
 let arm_resource transformers =
   Storage_account.build (Storage_account.name "mystorage" :: transformers)
@@ -82,7 +82,7 @@ let%expect_test "name validation" =
     | Ok account ->
         print_endline
           ("ok " ^ Resource_id.name (Storage_account.resource_id account))
-    | Error e -> print_endline (Storage_account.string_of_error e));
+    | Error e -> print_endline (Storage_account.Error.to_string e));
   [%expect
     {|
     Storage account name is required
