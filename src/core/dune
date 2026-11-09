@@ -1,4 +1,6 @@
 (library
  (name azf)
  (public_name azf)
- (libraries yojson))
+ (libraries yojson)
+ (preprocess
+  (pps ppx_yojson_conv)))

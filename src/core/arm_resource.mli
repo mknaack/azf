@@ -7,7 +7,7 @@ type t = {
   name : string;
   location : Arm_expression.t option;
   tags : (string * string) list;
-  sku : Yojson.Safe.t option;
+  sku : Sku.t option;
   kind : string option;
   depends_on : Resource_id.t list;
   properties : Yojson.Safe.t;
@@ -15,5 +15,5 @@ type t = {
 
 val resource_id : t -> Resource_id.t
 
-val to_json : t -> Yojson.Safe.t
+val yojson_of_t : t -> Yojson.Safe.t
 (** Empty [tags], [dependsOn] and unset options are omitted. *)

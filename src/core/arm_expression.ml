@@ -35,7 +35,7 @@ let to_string = function
   | String s -> s
   | e -> "[" ^ inner e ^ "]"
 
-let to_json = function
+let yojson_of_t = function
   | Int i -> `Int i
   | Bool b -> `Bool b
   | e -> `String (to_string e)

@@ -1,3 +1,4 @@
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 open Azf
 
 type sku =
@@ -20,7 +21,7 @@ type kind =
 type access_tier = Hot | Cool
 
 type config = {
-  name : string;
+  name : string option;
   sku : sku;
   kind : kind;
   access_tier : access_tier;
@@ -30,12 +31,23 @@ type config = {
   depends_on : Resource_id.t list;
 }
 
+type t = { account_name : string; config : config }
+type error = Missing_name | Invalid_name of string
+
+let error_to_string = function
+  | Missing_name -> "Storage account name is required"
+  | Invalid_name name ->
+      Printf.sprintf
+        "Invalid storage account name %S: must be 3-24 characters, lowercase \
+         letters and digits only"
+        name
+
 let type_name = "Microsoft.Storage/storageAccounts"
 let api_version = "2023-01-01"
 
 let default =
   {
-    name = "";
+    name = None;
     sku = Standard_LRS;
     kind = Storage_v2;
     access_tier = Hot;
@@ -45,8 +57,26 @@ let default =
     depends_on = [];
   }
 
-let build transformers = List.fold_left (fun c f -> f c) default transformers
-let name name c = { c with name }
+let is_lowercase_or_digit = function
+  | 'a' .. 'z' | '0' .. '9' -> true
+  | _ -> false
+
+let validate_name name =
+  let length = String.length name in
+  if length >= 3 && length <= 24 && String.for_all is_lowercase_or_digit name
+  then Ok name
+  else Error (Invalid_name name)
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  match config.name with
+  | None -> Error Missing_name
+  | Some name ->
+      Result.map
+        (fun account_name -> { account_name; config })
+        (validate_name name)
+
+let name name c = { c with name = Some name }
 let sku sku c = { c with sku }
 let kind kind c = { c with kind }
 let access_tier access_tier c = { c with access_tier }
@@ -55,7 +85,7 @@ let location location c = { c with location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id c = Resource_id.make ~type_name c.name
+let resource_id t = Resource_id.make ~type_name t.account_name
 
 let sku_to_string = function
   | Standard_LRS -> "Standard_LRS"
@@ -74,23 +104,32 @@ let kind_to_string = function
   | Block_blob_storage -> "BlockBlobStorage"
   | File_storage -> "FileStorage"
 
-let access_tier_to_string = function Hot -> "Hot" | Cool -> "Cool"
+let yojson_of_access_tier = function
+  | Hot -> `String "Hot"
+  | Cool -> `String "Cool"
 
-let to_arm_resource c : Arm_resource.t =
+type properties = {
+  access_tier : access_tier; [@key "accessTier"]
+  supports_https_traffic_only : bool; [@key "supportsHttpsTrafficOnly"]
+  minimum_tls_version : string; [@key "minimumTlsVersion"]
+}
+[@@deriving yojson_of]
+
+let to_arm_resource { account_name; config = c } : Arm_resource.t =
   {
     type_name;
     api_version;
-    name = c.name;
+    name = account_name;
     location = Some c.location;
     tags = c.tags;
-    sku = Some (`Assoc [ ("name", `String (sku_to_string c.sku)) ]);
+    sku = Some (Sku.make (sku_to_string c.sku));
     kind = Some (kind_to_string c.kind);
     depends_on = c.depends_on;
     properties =
-      `Assoc
-        [
-          ("accessTier", `String (access_tier_to_string c.access_tier));
-          ("supportsHttpsTrafficOnly", `Bool c.https_only);
-          ("minimumTlsVersion", `String "TLS1_2");
-        ];
+      yojson_of_properties
+        {
+          access_tier = c.access_tier;
+          supports_https_traffic_only = c.https_only;
+          minimum_tls_version = "TLS1_2";
+        };
   }

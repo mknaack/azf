@@ -5,15 +5,16 @@ let string name value = { name; output_type = String; value }
 let int name value = { name; output_type = Int; value }
 let bool name value = { name; output_type = Bool; value }
 
-let type_to_string = function
-  | String -> "string"
-  | Int -> "int"
-  | Bool -> "bool"
+let yojson_of_output_type = function
+  | String -> `String "string"
+  | Int -> `String "int"
+  | Bool -> `String "bool"
 
-let to_json t =
-  ( t.name,
-    `Assoc
-      [
-        ("type", `String (type_to_string t.output_type));
-        ("value", Arm_expression.to_json t.value);
-      ] )
+type definition = {
+  output_type : output_type; [@key "type"]
+  value : Arm_expression.t;
+}
+[@@deriving yojson_of]
+
+let to_definition ({ name; output_type; value } : t) =
+  (name, yojson_of_definition { output_type; value })

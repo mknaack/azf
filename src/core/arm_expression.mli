@@ -21,6 +21,6 @@ val to_string : t -> string
     is wrapped in brackets, e.g.
     [{|"[resourceId('Microsoft.Web/sites', 'myapp')]"|}]. *)
 
-val to_json : t -> Yojson.Safe.t
+val yojson_of_t : t -> Yojson.Safe.t
 (** Literal [Int] and [Bool] become JSON numbers/booleans; everything else is a
     JSON string as produced by {!to_string}. *)

@@ -6,13 +6,14 @@ An OCaml port of [Farmer](https://compositionalit.github.io/farmer/): describe A
 open Azf
 open Azf_resources
 
-let storage =
-  Storage_account.(build [ name "mystorage"; sku Standard_GRS; add_tag "env" "dev" ])
-
 let template =
-  Deployment.(build [ add_resource (Storage_account.to_arm_resource storage) ])
-  |> Deployment.emit |> Yojson.Safe.pretty_to_string
+  Storage_account.(build [ name "mystorage"; sku Standard_GRS; add_tag "env" "dev" ])
+  |> Result.map (fun storage ->
+         Deployment.(build [ add_resource (Storage_account.to_arm_resource storage) ])
+         |> Deployment.emit |> Yojson.Safe.pretty_to_string)
 ```
+
+Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits).
 
 See [`docs/implementation-plan.md`](docs/implementation-plan.md) for the design and roadmap.
 

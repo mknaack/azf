@@ -24,6 +24,8 @@
   dune
   (yojson
    (>= 2.0))
+  (ppx_yojson_conv
+   (>= v0.16))
   (ppx_expect :with-test)
   (odoc :with-doc)
   (ocamlformat
