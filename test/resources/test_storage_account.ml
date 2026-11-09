@@ -3,9 +3,8 @@ open Azf_resources
 
 let print_result = function
   | Ok account ->
-      Storage_account.to_arm_resource account
-      |> Arm_resource.yojson_of_t |> Yojson.Safe.pretty_to_string
-      |> print_endline
+      print_endline
+        (Arm_resource.to_string (Storage_account.to_arm_resource account))
   | Error e -> print_endline (Storage_account.Error.to_string e)
 
 let arm_resource transformers =

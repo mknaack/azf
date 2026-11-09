@@ -1,3 +1,3 @@
 (executable
  (name storage_account)
- (libraries azf azf.resources yojson))
+ (libraries azf azf.resources))

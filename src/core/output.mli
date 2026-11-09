@@ -7,5 +7,5 @@ val string : string -> Arm_expression.t -> t
 val int : string -> Arm_expression.t -> t
 val bool : string -> Arm_expression.t -> t
 
-val to_definition : t -> string * Yojson.Safe.t
-(** Name and definition for the template's [outputs] object. *)
+val type_name : t -> string
+(** The ARM type, e.g. ["string"]. *)

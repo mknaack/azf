@@ -17,3 +17,6 @@ val resource_id : t -> Resource_id.t
 
 val yojson_of_t : t -> Yojson.Safe.t
 (** Empty [tags], [dependsOn] and unset options are omitted. *)
+
+val to_string : t -> string
+(** {!yojson_of_t} as pretty-printed JSON. *)

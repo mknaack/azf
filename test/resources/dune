@@ -1,6 +1,6 @@
 (library
  (name test_resources)
- (libraries azf azf.resources yojson)
+ (libraries azf azf.resources)
  (inline_tests)
  (preprocess
   (pps ppx_expect)))

@@ -19,9 +19,7 @@ let () =
     Storage_account.(
       build [ name "azfexamplestorage"; sku Standard_GRS; add_tag "env" "dev" ])
   with
-  | Ok storage ->
-      print_endline
-        (Yojson.Safe.pretty_to_string (Deployment.emit (deployment storage)))
+  | Ok storage -> print_endline (Deployment.to_string (deployment storage))
   | Error e ->
       prerr_endline (Storage_account.Error.to_string e);
       exit 1
