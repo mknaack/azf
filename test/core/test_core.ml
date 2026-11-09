@@ -40,10 +40,10 @@ let%expect_test "expression json" =
     (`List
        Arm_expression.
          [
-           to_json (Int 1);
-           to_json (Bool false);
-           to_json (String "x");
-           to_json (Parameters "p");
+           yojson_of_t (Int 1);
+           yojson_of_t (Bool false);
+           yojson_of_t (String "x");
+           yojson_of_t (Parameters "p");
          ]);
   [%expect {| [ 1, false, "x", "[parameters('p')]" ] |}]
 
@@ -71,7 +71,7 @@ let minimal_resource : Arm_resource.t =
   }
 
 let%expect_test "minimal resource omits optional fields" =
-  print_json (Arm_resource.to_json minimal_resource);
+  print_json (Arm_resource.yojson_of_t minimal_resource);
   [%expect
     {|
     {
@@ -84,12 +84,12 @@ let%expect_test "minimal resource omits optional fields" =
 
 let%expect_test "full resource" =
   print_json
-    (Arm_resource.to_json
+    (Arm_resource.yojson_of_t
        {
          minimal_resource with
          location = Some (String "westeurope");
          tags = [ ("env", "dev"); ("team", "core") ];
-         sku = Some (`Assoc [ ("name", `String "S1") ]);
+         sku = Some (Sku.make ~tier:"Standard" "S1");
          kind = Some "app";
          depends_on = [ site ];
        });
@@ -101,7 +101,7 @@ let%expect_test "full resource" =
       "name": "myplan",
       "location": "westeurope",
       "tags": { "env": "dev", "team": "core" },
-      "sku": { "name": "S1" },
+      "sku": { "name": "S1", "tier": "Standard" },
       "kind": "app",
       "dependsOn": [ "[resourceId('Microsoft.Web/sites', 'myapp')]" ],
       "properties": {}
@@ -180,5 +180,22 @@ let%expect_test "deployment with parameters, resources and outputs" =
         "count": { "type": "int", "value": "[parameters('instances')]" },
         "on": { "type": "bool", "value": "[parameters('enabled')]" }
       }
+    }
+    |}]
+
+let%expect_test "sku omits unset fields" =
+  print_json (Sku.yojson_of_t (Sku.make "Standard_LRS"));
+  print_json
+    (Sku.yojson_of_t
+       (Sku.make ~tier:"Standard" ~size:"S1" ~family:"S" ~capacity:2 "S1"));
+  [%expect
+    {|
+    { "name": "Standard_LRS" }
+    {
+      "name": "S1",
+      "tier": "Standard",
+      "size": "S1",
+      "family": "S",
+      "capacity": 2
     }
     |}]

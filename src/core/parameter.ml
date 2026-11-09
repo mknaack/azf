@@ -16,17 +16,21 @@ let int ?default name = make Int (Option.map (fun i -> `Int i) default) name
 let bool ?default name = make Bool (Option.map (fun b -> `Bool b) default) name
 let to_expression t = Arm_expression.Parameters t.name
 
-let type_to_string = function
-  | String -> "string"
-  | Secure_string -> "securestring"
-  | Int -> "int"
-  | Bool -> "bool"
+let yojson_of_param_type = function
+  | String -> `String "string"
+  | Secure_string -> `String "securestring"
+  | Int -> `String "int"
+  | Bool -> `String "bool"
 
-let to_json t =
-  ( t.name,
-    `Assoc
-      (("type", `String (type_to_string t.param_type))
-      ::
-      (match t.default_value with
-      | None -> []
-      | Some v -> [ ("defaultValue", v) ])) )
+type json = Yojson.Safe.t
+
+let yojson_of_json json = json
+
+type definition = {
+  param_type : param_type; [@key "type"]
+  default_value : json option; [@key "defaultValue"] [@yojson.option]
+}
+[@@deriving yojson_of]
+
+let to_definition ({ name; param_type; default_value } : t) =
+  (name, yojson_of_definition { param_type; default_value })

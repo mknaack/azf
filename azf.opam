@@ -12,6 +12,7 @@ depends: [
   "ocaml" {>= "4.14"}
   "dune" {>= "3.17"}
   "yojson" {>= "2.0"}
+  "ppx_yojson_conv" {>= "v0.16"}
   "ppx_expect" {with-test}
   "odoc" {with-doc}
   "ocamlformat" {with-dev-setup & = "0.28.1"}

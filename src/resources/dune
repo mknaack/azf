@@ -1,4 +1,6 @@
 (library
  (name azf_resources)
  (public_name azf.resources)
- (libraries azf yojson))
+ (libraries azf yojson)
+ (preprocess
+  (pps ppx_yojson_conv)))

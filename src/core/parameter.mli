@@ -16,5 +16,5 @@ val bool : ?default:bool -> string -> t
 val to_expression : t -> Arm_expression.t
 (** [parameters('name')] *)
 
-val to_json : t -> string * Yojson.Safe.t
-(** Entry for the [parameters] object. *)
+val to_definition : t -> string * Yojson.Safe.t
+(** Name and definition for the template's [parameters] object. *)

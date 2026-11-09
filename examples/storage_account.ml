@@ -3,11 +3,7 @@
 open Azf
 open Azf_resources
 
-let storage =
-  Storage_account.(
-    build [ name "azfexamplestorage"; sku Standard_GRS; add_tag "env" "dev" ])
-
-let deployment =
+let deployment storage =
   Deployment.build
     [
       Deployment.add_resource (Storage_account.to_arm_resource storage);
@@ -19,4 +15,13 @@ let deployment =
     ]
 
 let () =
-  print_endline (Yojson.Safe.pretty_to_string (Deployment.emit deployment))
+  match
+    Storage_account.(
+      build [ name "azfexamplestorage"; sku Standard_GRS; add_tag "env" "dev" ])
+  with
+  | Ok storage ->
+      print_endline
+        (Yojson.Safe.pretty_to_string (Deployment.emit (deployment storage)))
+  | Error e ->
+      prerr_endline (Storage_account.error_to_string e);
+      exit 1
