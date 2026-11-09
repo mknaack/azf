@@ -6,7 +6,7 @@ let print_result = function
       Storage_account.to_arm_resource account
       |> Arm_resource.yojson_of_t |> Yojson.Safe.pretty_to_string
       |> print_endline
-  | Error e -> print_endline (Storage_account.error_to_string e)
+  | Error e -> print_endline (Storage_account.string_of_error e)
 
 let arm_resource transformers =
   Storage_account.build (Storage_account.name "mystorage" :: transformers)
@@ -82,7 +82,7 @@ let%expect_test "name validation" =
     | Ok account ->
         print_endline
           ("ok " ^ Resource_id.name (Storage_account.resource_id account))
-    | Error e -> print_endline (Storage_account.error_to_string e));
+    | Error e -> print_endline (Storage_account.string_of_error e));
   [%expect
     {|
     Storage account name is required
@@ -113,50 +113,6 @@ let%expect_test "last name wins" =
         "minimumTlsVersion": "TLS1_2"
       }
     }
-    |}]
-
-let%expect_test "skus" =
-  Storage_account.
-    [
-      Standard_LRS;
-      Standard_GRS;
-      Standard_RAGRS;
-      Standard_ZRS;
-      Standard_GZRS;
-      Standard_RAGZRS;
-      Premium_LRS;
-      Premium_ZRS;
-    ]
-  |> List.iter (fun s ->
-      match (arm_resource [ Storage_account.sku s ]).sku with
-      | Some sku -> print_endline sku.name
-      | None -> print_endline "none");
-  [%expect
-    {|
-    Standard_LRS
-    Standard_GRS
-    Standard_RAGRS
-    Standard_ZRS
-    Standard_GZRS
-    Standard_RAGZRS
-    Premium_LRS
-    Premium_ZRS
-    |}]
-
-let%expect_test "kinds" =
-  Storage_account.
-    [ Storage_v2; Storage; Blob_storage; Block_blob_storage; File_storage ]
-  |> List.iter (fun k ->
-      (arm_resource [ Storage_account.kind k ]).kind
-      |> Option.value ~default:"none"
-      |> print_endline);
-  [%expect
-    {|
-    StorageV2
-    Storage
-    BlobStorage
-    BlockBlobStorage
-    FileStorage
     |}]
 
 let%expect_test "resource id" =

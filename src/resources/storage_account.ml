@@ -34,7 +34,7 @@ type config = {
 type t = { account_name : string; config : config }
 type error = Missing_name | Invalid_name of string
 
-let error_to_string = function
+let string_of_error = function
   | Missing_name -> "Storage account name is required"
   | Invalid_name name ->
       Printf.sprintf
@@ -87,7 +87,7 @@ let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
 let resource_id t = Resource_id.make ~type_name t.account_name
 
-let sku_to_string = function
+let string_of_sku = function
   | Standard_LRS -> "Standard_LRS"
   | Standard_GRS -> "Standard_GRS"
   | Standard_RAGRS -> "Standard_RAGRS"
@@ -97,7 +97,7 @@ let sku_to_string = function
   | Premium_LRS -> "Premium_LRS"
   | Premium_ZRS -> "Premium_ZRS"
 
-let kind_to_string = function
+let string_of_kind = function
   | Storage_v2 -> "StorageV2"
   | Storage -> "Storage"
   | Blob_storage -> "BlobStorage"
@@ -122,8 +122,8 @@ let to_arm_resource { account_name; config = c } : Arm_resource.t =
     name = account_name;
     location = Some c.location;
     tags = c.tags;
-    sku = Some (Sku.make (sku_to_string c.sku));
-    kind = Some (kind_to_string c.kind);
+    sku = Some (Sku.make (string_of_sku c.sku));
+    kind = Some (string_of_kind c.kind);
     depends_on = c.depends_on;
     properties =
       yojson_of_properties
