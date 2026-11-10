@@ -116,6 +116,21 @@ let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
 let resource_id t = Resource_id.make ~type_name t.account_name
 
+let connection_string t =
+  let keys =
+    Arm_expression.Call
+      ("listKeys", [ Resource_id (resource_id t); String api_version ])
+  in
+  Arm_expression.Concat
+    [
+      String "DefaultEndpointsProtocol=https;AccountName=";
+      String t.account_name;
+      String ";AccountKey=";
+      Property (keys, "keys[0].value");
+      String ";EndpointSuffix=";
+      Property (Call ("environment", []), "suffixes.storage");
+    ]
+
 type properties = {
   access_tier : Access_tier.t; [@key "accessTier"]
   supports_https_traffic_only : bool; [@key "supportsHttpsTrafficOnly"]

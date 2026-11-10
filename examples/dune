@@ -1,3 +1,9 @@
 (executable
  (name storage_account)
+ (modules storage_account)
+ (libraries azf azf.resources))
+
+(executable
+ (name web_app)
+ (modules web_app)
  (libraries azf azf.resources))
