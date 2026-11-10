@@ -24,4 +24,5 @@ opam install . --deps-only --with-test --with-doc
 dune build
 dune runtest                  # expect tests; accept changes with --auto-promote
 dune exec examples/storage_account.exe
+dune exec examples/web_app.exe
 ```
