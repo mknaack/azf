@@ -219,3 +219,50 @@ let%expect_test "deployment infers dependsOn within the deployment" =
       "outputs": {}
     }
     |}]
+
+let%expect_test "runtime" =
+  let build os set_runtime =
+    print_result
+      Web_app.(build [ name "myapp"; service_plan (plan ~os ()); set_runtime ])
+  in
+  build Linux (Web_app.runtime (Dotnet "8.0"));
+  build Windows (Web_app.runtime (Java "17"));
+  build Windows (Web_app.runtime (Python "3.12"));
+  [%expect
+    {|
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "myapp",
+      "location": "[resourceGroup().location]",
+      "kind": "app,linux",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "alwaysOn": false,
+          "linuxFxVersion": "DOTNETCORE|8.0",
+          "minTlsVersion": "1.2"
+        }
+      }
+    }
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "myapp",
+      "location": "[resourceGroup().location]",
+      "kind": "app",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "alwaysOn": false,
+          "javaVersion": "17",
+          "javaContainer": "JAVA",
+          "javaContainerVersion": "SE",
+          "minTlsVersion": "1.2"
+        }
+      }
+    }
+    Runtime PYTHON|3.12 is not supported on Windows plans
+    |}]

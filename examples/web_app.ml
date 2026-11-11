@@ -22,6 +22,7 @@ let template =
           name "azf-example-app";
           service_plan plan;
           always_on true;
+          runtime (Dotnet "8.0");
           add_setting "STORAGE_CONNECTION"
             (Storage_account.connection_string storage);
         ])
