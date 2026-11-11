@@ -24,7 +24,6 @@ let template =
           always_on true;
           add_setting "STORAGE_CONNECTION"
             (Storage_account.connection_string storage);
-          depends_on (Storage_account.resource_id storage);
         ])
     |> Result.map_error Web_app.Error.to_string
   in

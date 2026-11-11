@@ -23,4 +23,5 @@ val schema : string
 
 val to_string : t -> string
 (** The ARM template as pretty-printed JSON. Resources, parameters and outputs
-    keep the order they were added in. *)
+    keep the order they were added in. Each resource's [dependsOn] gets its
+    {!Arm_resource.t.references} that are also in this deployment. *)

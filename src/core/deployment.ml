@@ -46,13 +46,30 @@ let to_parameter (p : Parameter.t) =
 let to_output (o : Output.t) : string * output =
   (o.name, { type_name = Output.type_name o; value = o.value })
 
+let infer_depends_on resources (r : Arm_resource.t) =
+  let deployed id =
+    List.exists
+      (fun other -> Resource_id.equal id (Arm_resource.resource_id other))
+      resources
+  in
+  let self = Arm_resource.resource_id r in
+  let add depends_on id =
+    if
+      deployed id
+      && (not (Resource_id.equal id self))
+      && not (List.exists (Resource_id.equal id) depends_on)
+    then depends_on @ [ id ]
+    else depends_on
+  in
+  { r with depends_on = List.fold_left add r.depends_on r.references }
+
 let to_string (d : t) =
   yojson_of_template
     {
       schema;
       content_version = "1.0.0.0";
       parameters = List.map to_parameter d.parameters;
-      resources = d.resources;
+      resources = List.map (infer_depends_on d.resources) d.resources;
       outputs = List.map to_output d.outputs;
     }
   |> Yojson.Safe.pretty_to_string

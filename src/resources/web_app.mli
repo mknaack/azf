@@ -10,7 +10,9 @@
       (* : (Web_app.t, Web_app.Error.t) result *)
     ]}
 
-    The app depends on its server farm automatically. *)
+    The server farm and any resources used in app settings are recorded as
+    {!Azf.Arm_resource.t.references}, so {!Azf.Deployment.to_string} adds them
+    to [dependsOn] when they are in the same deployment. *)
 
 module Error : sig
   type t = Missing_name | Invalid_name of string | Missing_service_plan

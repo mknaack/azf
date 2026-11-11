@@ -134,5 +134,6 @@ let to_arm_resource { farm_name; config = c } : Arm_resource.t =
            (Sku.to_string c.sku));
     kind = Some (match c.os with Os.Windows -> "app" | Os.Linux -> "linux");
     depends_on = c.depends_on;
+    references = Arm_expression.resource_ids c.location;
     properties = yojson_of_properties { reserved = c.os = Os.Linux };
   }

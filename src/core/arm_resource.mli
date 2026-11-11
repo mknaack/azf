@@ -9,7 +9,11 @@ type t = {
   tags : (string * string) list;
   sku : Sku.t option;
   kind : string option;
-  depends_on : Resource_id.t list;
+  depends_on : Resource_id.t list;  (** Emitted as-is. *)
+  references : Resource_id.t list;
+      (** Resources used in this resource's expressions. Not emitted;
+          {!Deployment.to_string} adds the ones in the same deployment to
+          [dependsOn]. *)
   properties : Yojson.Safe.t;
 }
 

@@ -20,7 +20,6 @@ let%expect_test "defaults depend on the service plan" =
       "name": "myapp",
       "location": "[resourceGroup().location]",
       "kind": "app",
-      "dependsOn": [ "[resourceId('Microsoft.Web/serverfarms', 'myplan')]" ],
       "properties": {
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
         "httpsOnly": true,
@@ -56,8 +55,8 @@ let%expect_test "linux app with settings" =
       "tags": { "team": "core" },
       "kind": "app,linux",
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
-        "[resourceId('Microsoft.Storage/storageAccounts', 'mystorage')]"
+        "[resourceId('Microsoft.Storage/storageAccounts', 'mystorage')]",
+        "[resourceId('Microsoft.Web/serverfarms', 'myplan')]"
       ],
       "properties": {
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
@@ -110,3 +109,113 @@ let%expect_test "default host name" =
   |> print_endline;
   [%expect
     {| [reference(resourceId('Microsoft.Web/sites', 'myapp')).defaultHostName] |}]
+
+let%expect_test "deployment infers dependsOn within the deployment" =
+  let storage = Storage_account.(build [ name "mystorage" ]) |> Result.get_ok in
+  let deployed_plan = plan () in
+  let external_plan =
+    Server_farm.(build [ name "sharedplan" ]) |> Result.get_ok
+  in
+  let app plan settings =
+    Web_app.build (Web_app.name "myapp" :: Web_app.service_plan plan :: settings)
+    |> Result.get_ok |> Web_app.to_arm_resource
+  in
+  let deps resources =
+    Deployment.(build [ add_resources resources ])
+    |> Deployment.to_string |> print_endline
+  in
+  deps
+    [
+      app deployed_plan
+        Web_app.
+          [
+            add_setting "A" (Storage_account.connection_string storage);
+            add_setting "B" (Storage_account.connection_string storage);
+            depends_on (Server_farm.resource_id deployed_plan);
+          ];
+      Server_farm.to_arm_resource deployed_plan;
+      Storage_account.to_arm_resource storage;
+    ];
+  deps [ app external_plan [] ];
+  [%expect
+    {|
+    {
+      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {},
+      "resources": [
+        {
+          "type": "Microsoft.Web/sites",
+          "apiVersion": "2022-09-01",
+          "name": "myapp",
+          "location": "[resourceGroup().location]",
+          "kind": "app",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
+            "[resourceId('Microsoft.Storage/storageAccounts', 'mystorage')]"
+          ],
+          "properties": {
+            "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
+            "httpsOnly": true,
+            "siteConfig": {
+              "alwaysOn": false,
+              "minTlsVersion": "1.2",
+              "appSettings": [
+                {
+                  "name": "A",
+                  "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', 'mystorage', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'mystorage'), '2023-01-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                },
+                {
+                  "name": "B",
+                  "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', 'mystorage', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'mystorage'), '2023-01-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Microsoft.Web/serverfarms",
+          "apiVersion": "2022-09-01",
+          "name": "myplan",
+          "location": "[resourceGroup().location]",
+          "sku": { "name": "F1", "tier": "Free", "capacity": 1 },
+          "kind": "app",
+          "properties": { "reserved": false }
+        },
+        {
+          "type": "Microsoft.Storage/storageAccounts",
+          "apiVersion": "2023-01-01",
+          "name": "mystorage",
+          "location": "[resourceGroup().location]",
+          "sku": { "name": "Standard_LRS" },
+          "kind": "StorageV2",
+          "properties": {
+            "accessTier": "Hot",
+            "supportsHttpsTrafficOnly": true,
+            "minimumTlsVersion": "TLS1_2"
+          }
+        }
+      ],
+      "outputs": {}
+    }
+    {
+      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {},
+      "resources": [
+        {
+          "type": "Microsoft.Web/sites",
+          "apiVersion": "2022-09-01",
+          "name": "myapp",
+          "location": "[resourceGroup().location]",
+          "kind": "app",
+          "properties": {
+            "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'sharedplan')]",
+            "httpsOnly": true,
+            "siteConfig": { "alwaysOn": false, "minTlsVersion": "1.2" }
+          }
+        }
+      ],
+      "outputs": {}
+    }
+    |}]
