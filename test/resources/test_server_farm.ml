@@ -4,7 +4,7 @@ open Azf_resources
 let print_result = function
   | Ok farm ->
       print_endline (Arm_resource.to_string (Server_farm.to_arm_resource farm))
-  | Error e -> print_endline (Server_farm.Error.to_string e)
+  | Error e -> print_endline (Error.to_string e)
 
 let%expect_test "defaults" =
   print_result Server_farm.(build [ name "myplan" ]);
@@ -68,7 +68,7 @@ let%expect_test "validation" =
   |> List.iter (function
     | Ok farm ->
         print_endline ("ok " ^ Resource_id.name (Server_farm.resource_id farm))
-    | Error e -> print_endline (Server_farm.Error.to_string e));
+    | Error e -> print_endline (Error.to_string e));
   [%expect
     {|
     Server farm name is required

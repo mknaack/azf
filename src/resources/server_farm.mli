@@ -2,7 +2,7 @@
 
     {[
       let plan = Server_farm.(build [ name "myplan"; sku S1; os Linux ])
-      (* : (Server_farm.t, Server_farm.Error.t) result *)
+      (* : (Server_farm.t, Error.t) result *)
     ]} *)
 
 module Sku : sig
@@ -30,12 +30,6 @@ end
 
 module Os : sig
   type t = Windows | Linux
-
-  val to_string : t -> string
-end
-
-module Error : sig
-  type t = Missing_name | Invalid_name of string | Invalid_capacity of int
 
   val to_string : t -> string
 end

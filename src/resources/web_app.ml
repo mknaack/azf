@@ -17,26 +17,6 @@ module Runtime = struct
     | Php v -> "PHP|" ^ v
 end
 
-module Error = struct
-  type t =
-    | Missing_name
-    | Invalid_name of string
-    | Missing_service_plan
-    | Unsupported_runtime of Runtime.t
-
-  let to_string = function
-    | Missing_name -> "Web app name is required"
-    | Invalid_name name ->
-        Printf.sprintf
-          "Invalid web app name %S: must be 2-60 characters, letters, digits \
-           and hyphens only, not starting or ending with a hyphen"
-          name
-    | Missing_service_plan -> "Web app service plan is required"
-    | Unsupported_runtime runtime ->
-        Printf.sprintf "Runtime %s is not supported on Windows plans"
-          (Runtime.to_string runtime)
-end
-
 type config = {
   name : string option;
   service_plan : Server_farm.t option;
@@ -79,21 +59,22 @@ let validate_name name =
     && name.[0] <> '-'
     && name.[length - 1] <> '-'
   then Ok name
-  else Error (Error.Invalid_name name)
+  else Error (Error.Web_app (Invalid_name name))
 
 let ( let* ) = Result.bind
 
 let check_runtime plan = function
-  | Some (Runtime.Python _ as runtime) when not (Server_farm.is_linux plan) ->
-      Error (Error.Unsupported_runtime runtime)
+  | Some (Runtime.Python version) when not (Server_farm.is_linux plan) ->
+      Error (Error.Web_app (Python_requires_linux version))
   | _ -> Ok ()
 
 let build transformers =
   let config = List.fold_left (fun c f -> f c) default transformers in
-  let* name = Option.to_result ~none:Error.Missing_name config.name in
+  let* name = Option.to_result ~none:(Error.Web_app Missing_name) config.name in
   let* app_name = validate_name name in
   let* plan =
-    Option.to_result ~none:Error.Missing_service_plan config.service_plan
+    Option.to_result ~none:(Error.Web_app Missing_service_plan)
+      config.service_plan
   in
   let* () = check_runtime plan config.runtime in
   Ok { app_name; plan; config }

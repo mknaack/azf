@@ -13,7 +13,7 @@ let template =
          |> Deployment.to_string)
 ```
 
-Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits).
+Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits). All builders share `Azf_resources.Error.t`, so they combine with `let*`.
 
 See [`docs/implementation-plan.md`](docs/implementation-plan.md) for the design and roadmap.
 

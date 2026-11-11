@@ -49,20 +49,6 @@ module Os = struct
   let to_string = function Windows -> "Windows" | Linux -> "Linux"
 end
 
-module Error = struct
-  type t = Missing_name | Invalid_name of string | Invalid_capacity of int
-
-  let to_string = function
-    | Missing_name -> "Server farm name is required"
-    | Invalid_name name ->
-        Printf.sprintf
-          "Invalid server farm name %S: must be 1-60 characters, letters, \
-           digits and hyphens only"
-          name
-    | Invalid_capacity n ->
-        Printf.sprintf "Invalid server farm capacity %d: must be at least 1" n
-end
-
 type config = {
   name : string option;
   sku : Sku.t;
@@ -97,14 +83,14 @@ let validate_name name =
   let length = String.length name in
   if length >= 1 && length <= 60 && String.for_all is_name_char name then
     Ok name
-  else Error (Error.Invalid_name name)
+  else Error (Error.Server_farm (Invalid_name name))
 
 let build transformers =
   let config = List.fold_left (fun c f -> f c) default transformers in
   match config.name with
-  | None -> Error Error.Missing_name
+  | None -> Error (Error.Server_farm Missing_name)
   | Some _ when config.capacity < 1 ->
-      Error (Error.Invalid_capacity config.capacity)
+      Error (Error.Server_farm (Invalid_capacity config.capacity))
   | Some name ->
       Result.map (fun farm_name -> { farm_name; config }) (validate_name name)
 
