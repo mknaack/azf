@@ -12,6 +12,10 @@ type t =
   | Property of t * string  (** [expr.property] *)
   | Call of string * t list  (** Any other template function. *)
 
+val resource_ids : t -> Resource_id.t list
+(** Every resource referenced by [Resource_id] or [Reference], in order, without
+    duplicates. *)
+
 val resource_group_location : t
 (** [resourceGroup().location] *)
 

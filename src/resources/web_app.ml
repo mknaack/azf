@@ -116,9 +116,10 @@ let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
     tags = c.tags;
     sku = None;
     kind = Some (if Server_farm.is_linux plan then "app,linux" else "app");
-    depends_on =
-      plan_id
-      :: List.filter (fun id -> not (Resource_id.equal id plan_id)) c.depends_on;
+    depends_on = c.depends_on;
+    references =
+      List.concat_map Arm_expression.resource_ids
+        (c.location :: Resource_id plan_id :: List.map snd c.app_settings);
     properties =
       yojson_of_properties
         {

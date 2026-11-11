@@ -10,6 +10,18 @@ type t =
   | Property of t * string
   | Call of string * t list
 
+let resource_ids e =
+  let add ids id =
+    if List.exists (Resource_id.equal id) ids then ids else id :: ids
+  in
+  let rec collect ids = function
+    | String _ | Int _ | Bool _ | Parameters _ | Variables _ -> ids
+    | Resource_id id | Reference id -> add ids id
+    | Property (e, _) -> collect ids e
+    | Concat es | Call (_, es) -> List.fold_left collect ids es
+  in
+  List.rev (collect [] e)
+
 let resource_group_location = Property (Call ("resourceGroup", []), "location")
 let quote s = "'" ^ String.concat "''" (String.split_on_char '\'' s) ^ "'"
 let call name args = name ^ "(" ^ String.concat ", " args ^ ")"

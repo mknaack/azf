@@ -54,6 +54,7 @@ let minimal_resource : Arm_resource.t =
     sku = None;
     kind = None;
     depends_on = [];
+    references = [];
     properties = `Assoc [];
   }
 

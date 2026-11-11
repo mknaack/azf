@@ -148,6 +148,7 @@ let to_arm_resource { account_name; config = c } : Arm_resource.t =
     sku = Some (Azf.Sku.make (Sku.to_string c.sku));
     kind = Some (Kind.to_string c.kind);
     depends_on = c.depends_on;
+    references = Arm_expression.resource_ids c.location;
     properties =
       yojson_of_properties
         {
