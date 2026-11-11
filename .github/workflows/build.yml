@@ -19,3 +19,20 @@ jobs:
         run: opam exec -- dune build
       - name: test
         run: opam exec -- dune runtest
+      - name: install bicep
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/bicep" https://github.com/Azure/bicep/releases/download/v0.49.2/bicep-linux-x64
+          chmod +x "$RUNNER_TEMP/bicep"
+      # Decompiling checks the templates against Azure's resource type schemas,
+      # with no credentials needed. Bicep only warns on schema problems, so
+      # fail on any core (BCP) diagnostic.
+      - name: check example templates with bicep
+        run: |
+          set -o pipefail
+          for example in storage_account web_app; do
+            opam exec -- dune exec "examples/$example.exe" > "$RUNNER_TEMP/$example.json"
+            "$RUNNER_TEMP/bicep" decompile "$RUNNER_TEMP/$example.json" --outfile "$RUNNER_TEMP/$example.bicep" 2>&1 | tee "$RUNNER_TEMP/$example.log"
+            if grep -E ': (Warning|Error) BCP' "$RUNNER_TEMP/$example.log"; then
+              exit 1
+            fi
+          done
