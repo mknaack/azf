@@ -58,7 +58,7 @@ azf/
 
 ## 3. Core engine (build first, before any Azure resources)
 
-- `Arm_resource.t` — `{ type_name; api_version; name; properties : Yojson.Safe.t; depends_on; location; tags }`.
+- `Arm_resource.t` — `{ type_name; api_version; name; properties : Yojson.Safe.t; depends_on; references; location; tags }`. `references` lists the resources used in the resource's expressions; `Deployment.to_string` adds those in the same deployment to `dependsOn`.
 - `Deployment.t` — collection of resources + parameters + outputs.
 - `Deployment.to_string : Deployment.t -> string` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
 - `Arm_expression` AST for ARM template functions (`resourceId`, `concat`, `reference`, `parameters`, `variables`) that serializes to `"[resourceId('Microsoft.Web/sites', name)]"` strings.
@@ -70,7 +70,7 @@ Start with 2–3 resources to validate the design:
 - `Microsoft.Storage/storageAccounts`
 - `Microsoft.Web/serverfarms` + `Microsoft.Web/sites` (Farmer's canonical example, proves dependencies)
 
-Each resource module: a `config` record with defaults, transformer functions (`name`, `sku`, `add_tags`, `depends_on`), a `to_arm_resource` function, and one submodule per option type (e.g. `Storage_account.Sku`, `Kind`, `Error`), each with its own `t` and `to_string`. Use a typed `ResourceId` for cross-resource references so `depends_on` isn't stringly-typed.
+Each resource module: a `config` record with defaults, transformer functions (`name`, `sku`, `add_tags`, `depends_on`), a `to_arm_resource` function, and one submodule per option type (e.g. `Storage_account.Sku`, `Kind`), each with its own `t` and `to_string`. `build` returns `(t, Error.t) result` with one `Azf_resources.Error.t` shared by all builders (a constructor per resource, each wrapping that resource's own errors), so builders combine with `let*`. Use a typed `ResourceId` for cross-resource references so `depends_on` isn't stringly-typed.
 
 ## 5. Parameters, outputs, secrets
 
@@ -93,12 +93,11 @@ Each resource module: a `config` record with defaults, transformer functions (`n
     |> Arm_resource.to_string |> print_endline;
     [%expect {| { "type": "Microsoft.Storage/storageAccounts", ... } |}]
   ```
-- Validation: emitted templates pass `az deployment group validate` or the ARM template schema.
+- Validation: emitted templates pass `az deployment group validate` or the ARM template schema. CI decompiles the example templates with the Bicep CLI, which checks them against Azure's resource type schemas without credentials, and fails on any Bicep (BCP) diagnostic.
 
 ## 8. Later enhancements
 
 - Bicep emission in addition to JSON.
-- `depends_on` inference from `resourceId` references.
 - Location/tag inheritance from deployment level down to resources.
 
 ## Milestone order
