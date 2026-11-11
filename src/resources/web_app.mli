@@ -7,7 +7,7 @@
             [
               name "myapp"; service_plan plan; add_setting "ENV" (String "dev");
             ])
-      (* : (Web_app.t, Web_app.Error.t) result *)
+      (* : (Web_app.t, Error.t) result *)
     ]}
 
     The server farm and any resources used in app settings are recorded as
@@ -27,17 +27,6 @@ module Runtime : sig
 
   val to_string : t -> string
   (** The Linux [linuxFxVersion] form, e.g. ["DOTNETCORE|8.0"]. *)
-end
-
-module Error : sig
-  type t =
-    | Missing_name
-    | Invalid_name of string
-    | Missing_service_plan
-    | Unsupported_runtime of Runtime.t
-        (** Python is only available on Linux plans. *)
-
-  val to_string : t -> string
 end
 
 type config = {
@@ -78,7 +67,8 @@ val always_on : bool -> config -> config
 
 val runtime : Runtime.t -> config -> config
 (** Sets [linuxFxVersion] on Linux plans, or the matching [netFrameworkVersion]
-    / [nodeVersion] / [phpVersion] / [javaVersion] on Windows. *)
+    / [nodeVersion] / [phpVersion] / [javaVersion] on Windows. Python is only
+    available on Linux plans. *)
 
 val add_setting : string -> Azf.Arm_expression.t -> config -> config
 (** Adds an app setting; a later setting with the same name replaces an earlier

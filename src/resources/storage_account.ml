@@ -46,18 +46,6 @@ module Access_tier = struct
   let yojson_of_t t = `String (to_string t)
 end
 
-module Error = struct
-  type t = Missing_name | Invalid_name of string
-
-  let to_string = function
-    | Missing_name -> "Storage account name is required"
-    | Invalid_name name ->
-        Printf.sprintf
-          "Invalid storage account name %S: must be 3-24 characters, lowercase \
-           letters and digits only"
-          name
-end
-
 type config = {
   name : string option;
   sku : Sku.t;
@@ -94,12 +82,12 @@ let validate_name name =
   let length = String.length name in
   if length >= 3 && length <= 24 && String.for_all is_lowercase_or_digit name
   then Ok name
-  else Error (Error.Invalid_name name)
+  else Error (Error.Storage_account (Invalid_name name))
 
 let build transformers =
   let config = List.fold_left (fun c f -> f c) default transformers in
   match config.name with
-  | None -> Error Error.Missing_name
+  | None -> Error (Error.Storage_account Missing_name)
   | Some name ->
       Result.map
         (fun account_name -> { account_name; config })

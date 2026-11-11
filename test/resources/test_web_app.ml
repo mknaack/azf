@@ -8,7 +8,7 @@ let plan ?(os = Server_farm.Os.Windows) () =
 let print_result = function
   | Ok app ->
       print_endline (Arm_resource.to_string (Web_app.to_arm_resource app))
-  | Error e -> print_endline (Web_app.Error.to_string e)
+  | Error e -> print_endline (Error.to_string e)
 
 let%expect_test "defaults depend on the service plan" =
   print_result Web_app.(build [ name "myapp"; service_plan (plan ()) ]);
@@ -90,7 +90,7 @@ let%expect_test "validation" =
   |> List.iter (function
     | Ok app ->
         print_endline ("ok " ^ Resource_id.name (Web_app.resource_id app))
-    | Error e -> print_endline (Web_app.Error.to_string e));
+    | Error e -> print_endline (Error.to_string e));
   [%expect
     {|
     Web app name is required
@@ -264,5 +264,5 @@ let%expect_test "runtime" =
         }
       }
     }
-    Runtime PYTHON|3.12 is not supported on Windows plans
+    Python 3.12 requires a Linux service plan
     |}]

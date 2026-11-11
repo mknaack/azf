@@ -3,7 +3,7 @@
     {[
       let storage =
         Storage_account.(build [ name "mystorage"; sku Standard_GRS ])
-      (* : (Storage_account.t, Storage_account.Error.t) result *)
+      (* : (Storage_account.t, Error.t) result *)
     ]} *)
 
 module Sku : sig
@@ -33,12 +33,6 @@ end
 
 module Access_tier : sig
   type t = Hot | Cool
-
-  val to_string : t -> string
-end
-
-module Error : sig
-  type t = Missing_name | Invalid_name of string
 
   val to_string : t -> string
 end

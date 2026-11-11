@@ -21,5 +21,5 @@ let () =
   with
   | Ok storage -> print_endline (Deployment.to_string (deployment storage))
   | Error e ->
-      prerr_endline (Storage_account.Error.to_string e);
+      prerr_endline (Error.to_string e);
       exit 1

@@ -7,13 +7,9 @@ open Azf_resources
 let ( let* ) = Result.bind
 
 let template =
-  let* storage =
-    Storage_account.(build [ name "azfexamplestorage" ])
-    |> Result.map_error Storage_account.Error.to_string
-  in
+  let* storage = Storage_account.(build [ name "azfexamplestorage" ]) in
   let* plan =
     Server_farm.(build [ name "azf-example-plan"; sku B1; os Linux ])
-    |> Result.map_error Server_farm.Error.to_string
   in
   let* app =
     Web_app.(
@@ -26,7 +22,6 @@ let template =
           add_setting "STORAGE_CONNECTION"
             (Storage_account.connection_string storage);
         ])
-    |> Result.map_error Web_app.Error.to_string
   in
   Ok
     (Deployment.build
@@ -45,5 +40,5 @@ let () =
   match template with
   | Ok deployment -> print_endline (Deployment.to_string deployment)
   | Error e ->
-      prerr_endline e;
+      prerr_endline (Error.to_string e);
       exit 1
