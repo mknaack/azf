@@ -14,8 +14,28 @@
     {!Azf.Arm_resource.t.references}, so {!Azf.Deployment.to_string} adds them
     to [dependsOn] when they are in the same deployment. *)
 
+module Runtime : sig
+  (** The version is passed through as App Service expects it for the plan's OS,
+      e.g. [Dotnet "8.0"], [Node "20-lts"], [Java "17-java17"] on Linux and
+      [Dotnet "v8.0"], [Node "~20"], [Java "17"] on Windows. *)
+  type t =
+    | Dotnet of string
+    | Node of string
+    | Python of string
+    | Java of string
+    | Php of string
+
+  val to_string : t -> string
+  (** The Linux [linuxFxVersion] form, e.g. ["DOTNETCORE|8.0"]. *)
+end
+
 module Error : sig
-  type t = Missing_name | Invalid_name of string | Missing_service_plan
+  type t =
+    | Missing_name
+    | Invalid_name of string
+    | Missing_service_plan
+    | Unsupported_runtime of Runtime.t
+        (** Python is only available on Linux plans. *)
 
   val to_string : t -> string
 end
@@ -25,6 +45,7 @@ type config = {
   service_plan : Server_farm.t option;
   https_only : bool;
   always_on : bool;
+  runtime : Runtime.t option;
   app_settings : (string * Azf.Arm_expression.t) list;
   location : Azf.Arm_expression.t;
   tags : (string * string) list;
@@ -39,8 +60,9 @@ val type_name : string
 val api_version : string
 
 val default : config
-(** No name or service plan, HTTPS only, [always_on] off (the [F1] tier does not
-    support it), no app settings, located in the resource group's location. *)
+(** No name, service plan or runtime, HTTPS only, [always_on] off (the [F1] tier
+    does not support it), no app settings, located in the resource group's
+    location. *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 2–60 characters, letters, digits and hyphens, not starting or
@@ -53,6 +75,10 @@ val name : string -> config -> config
 val service_plan : Server_farm.t -> config -> config
 val https_only : bool -> config -> config
 val always_on : bool -> config -> config
+
+val runtime : Runtime.t -> config -> config
+(** Sets [linuxFxVersion] on Linux plans, or the matching [netFrameworkVersion]
+    / [nodeVersion] / [phpVersion] / [javaVersion] on Windows. *)
 
 val add_setting : string -> Azf.Arm_expression.t -> config -> config
 (** Adds an app setting; a later setting with the same name replaces an earlier
