@@ -41,14 +41,16 @@ azf/
 │   │   └── web_app.ml(i)
 │   └── deploy/                 # library `azf.deploy` (module Azf_deploy)
 │       ├── dune
-│       └── az_cli.ml(i)        # shells out to `az deployment group create`
+│       └── az_cli.ml(i)        # Azf_deploy.Az_cli: validate / what_if / create via the `az` CLI
 ├── examples/
 │   ├── dune
 │   └── web_app_with_storage.ml # Farmer's canonical example
 └── test/
     ├── core/                   # expect tests: Arm_expression, Resource_id, Deployment.to_string
     │   └── dune                # (inline_tests) (preprocess (pps ppx_expect))
-    └── resources/              # expect tests: builder -> emitted JSON
+    ├── resources/              # expect tests: builder -> emitted JSON
+    │   └── dune
+    └── deploy/                 # expect tests: Az_cli against a fake `az`
         └── dune
 ```
 
@@ -82,7 +84,10 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 
 ## 6. Deployment path
 
-- Shell out to `az deployment group create` (simplest, matches Farmer).
+- `Azf_deploy.Az_cli` shells out to the Azure CLI (simplest, matches Farmer): `validate`, `what_if` and `create` run `az deployment group validate|what-if|create`, and `create_resource_group` runs `az group create`. It takes an `Az_cli.Config.t` built with `Config.build ~az ~resource_group ~name [ mode Complete; parameter … ]` (the required settings are labelled arguments, the optional ones transformers) and returns `(_, Az_cli.Error.t) result`; `create` returns the template's outputs.
+- The template and parameter values (typed `Parameter.Value.t`) go in temporary files (0600, removed afterwards), so secrets never appear on the command line.
+- `Deployment.write_file` writes the template for anyone running `az` or Bicep themselves.
+- Tested with expect tests against a fake `az` script that logs its arguments.
 - Optionally later: call the ARM REST API directly using HTTP machinery patterned on `azure-cosmos-db` (Cohttp + TLS). Note ARM uses AAD bearer tokens, not Cosmos master-key signing.
 
 ## 7. Testing
