@@ -77,7 +77,13 @@ val depends_on : Azf.Resource_id.t -> config -> config
 val resource_id : t -> Azf.Resource_id.t
 
 val connection_string : t -> Azf.Arm_expression.t
-(** Connection string built from the account's first key with [listKeys()].
-    Anything using it must also {!val-depends_on} the account. *)
+(** Connection string built from the account's first key with [listKeys()]. *)
+
+val blob_endpoint : t -> Azf.Arm_expression.t
+(** The account's primary blob endpoint, e.g.
+    ["https://mystorage.blob.core.windows.net/"]. *)
+
+val web_endpoint : t -> Azf.Arm_expression.t
+(** The primary static website endpoint. *)
 
 val to_arm_resource : t -> Azf.Arm_resource.t

@@ -128,3 +128,15 @@ let%expect_test "connection string" =
   |> Arm_expression.to_string |> print_endline;
   [%expect
     {| [concat('DefaultEndpointsProtocol=https;AccountName=', 'mystorage', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'mystorage'), '2023-01-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)] |}]
+
+let%expect_test "endpoints" =
+  let storage = Storage_account.(build [ name "mystorage" ]) |> Result.get_ok in
+  print_endline
+    (Arm_expression.to_string (Storage_account.blob_endpoint storage));
+  print_endline
+    (Arm_expression.to_string (Storage_account.web_endpoint storage));
+  [%expect
+    {|
+    [reference(resourceId('Microsoft.Storage/storageAccounts', 'mystorage')).primaryEndpoints.blob]
+    [reference(resourceId('Microsoft.Storage/storageAccounts', 'mystorage')).primaryEndpoints.web]
+    |}]

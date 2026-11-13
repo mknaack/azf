@@ -75,6 +75,12 @@ val add_setting : string -> Azf.Arm_expression.t -> config -> config
     one. *)
 
 val add_settings : (string * Azf.Arm_expression.t) list -> config -> config
+
+val add_secret_setting : string -> config -> config
+(** [add_secret_setting "DB_PASSWORD"] sets the app setting to a [securestring]
+    parameter with the same name, so the value is supplied at deployment time
+    instead of being stored in the template. *)
+
 val location : Azf.Arm_expression.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config

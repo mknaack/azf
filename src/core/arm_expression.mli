@@ -4,7 +4,7 @@ type t =
   | String of string  (** Literal string. *)
   | Int of int
   | Bool of bool
-  | Parameters of string  (** [parameters('name')] *)
+  | Parameter of Parameter.t  (** [parameters('name')] *)
   | Variables of string  (** [variables('name')] *)
   | Concat of t list  (** [concat(a, b, ...)] *)
   | Resource_id of Resource_id.t  (** [resourceId('type', 'name')] *)
@@ -15,6 +15,9 @@ type t =
 val resource_ids : t -> Resource_id.t list
 (** Every resource referenced by [Resource_id] or [Reference], in order, without
     duplicates. *)
+
+val parameters : t -> Parameter.t list
+(** Every parameter used, in order, without duplicate names. *)
 
 val resource_group_location : t
 (** [resourceGroup().location] *)

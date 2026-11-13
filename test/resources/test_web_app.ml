@@ -266,3 +266,53 @@ let%expect_test "runtime" =
     }
     Python 3.12 requires a Linux service plan
     |}]
+
+let%expect_test "secret settings and parameters become template parameters" =
+  let region = Parameter.string ~default:"westeurope" "location" in
+  let app =
+    Web_app.(
+      build
+        [
+          name "myapp";
+          service_plan (plan ());
+          location (Parameter region);
+          add_secret_setting "DB_PASSWORD";
+          add_setting "REGION" (Parameter region);
+        ])
+    |> Result.get_ok
+  in
+  Deployment.(build [ add_resource (Web_app.to_arm_resource app) ])
+  |> Deployment.to_string |> print_endline;
+  [%expect
+    {|
+    {
+      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "location": { "type": "string", "defaultValue": "westeurope" },
+        "DB_PASSWORD": { "type": "securestring" }
+      },
+      "resources": [
+        {
+          "type": "Microsoft.Web/sites",
+          "apiVersion": "2022-09-01",
+          "name": "myapp",
+          "location": "[parameters('location')]",
+          "kind": "app",
+          "properties": {
+            "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myplan')]",
+            "httpsOnly": true,
+            "siteConfig": {
+              "alwaysOn": false,
+              "minTlsVersion": "1.2",
+              "appSettings": [
+                { "name": "DB_PASSWORD", "value": "[parameters('DB_PASSWORD')]" },
+                { "name": "REGION", "value": "[parameters('location')]" }
+              ]
+            }
+          }
+        }
+      ],
+      "outputs": {}
+    }
+    |}]
