@@ -1,0 +1,6 @@
+(library
+ (name azf_deploy)
+ (public_name azf.deploy)
+ (libraries azf unix yojson)
+ (preprocess
+  (pps ppx_yojson_conv)))

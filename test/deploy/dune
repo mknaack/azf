@@ -1,0 +1,6 @@
+(library
+ (name test_deploy)
+ (libraries azf azf.deploy unix)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect)))

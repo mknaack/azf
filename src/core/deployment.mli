@@ -30,3 +30,7 @@ val to_string : t -> string
     {!Arm_resource.t.references} that are also in this deployment. The
     [parameters] block holds the added parameters followed by those used by
     resources and outputs; when two share a name, the first one wins. *)
+
+val write_file : string -> t -> unit
+(** [write_file path d] writes {!to_string}[ d] to [path], e.g. for
+    [az deployment group create --template-file path]. *)
