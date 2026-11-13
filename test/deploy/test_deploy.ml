@@ -40,17 +40,19 @@ let print_result to_string = function
   | Ok v -> print_endline ("Ok " ^ to_string v)
   | Error e -> print_endline ("Error: " ^ Azf_deploy.Az_cli.Error.to_string e)
 
+let config ?(name = "azf") az transformers =
+  Azf_deploy.Az_cli.Config.build ~az ~resource_group:"my-rg" ~name transformers
+
 let%expect_test "validate" =
   let script, print_log = fake_az () in
-  Azf_deploy.Az_cli.(
-    validate
-      [
-        az script;
-        resource_group "my-rg";
-        parameter "DB_PASSWORD" (String "s3cret");
-        parameter "tags" (Object [ ("env", String "dev") ]);
-      ]
-      deployment)
+  Azf_deploy.Az_cli.validate
+    (config script
+       Azf_deploy.Az_cli.Config.
+         [
+           parameter "DB_PASSWORD" (String "s3cret");
+           parameter "tags" (Object [ ("env", String "dev") ]);
+         ])
+    deployment
   |> print_result (fun () -> "()");
   print_log ();
   [%expect
@@ -88,10 +90,9 @@ let%expect_test "create returns outputs" =
         "count": { "type": "Int", "value": 3 } } } }|}
   in
   let script, print_log = fake_az ~stdout () in
-  Azf_deploy.Az_cli.(
-    create
-      [ az script; resource_group "my-rg"; name "web"; mode Complete ]
-      deployment)
+  Azf_deploy.Az_cli.create
+    (config ~name:"web" script Azf_deploy.Az_cli.Config.[ mode Complete ])
+    deployment
   |> print_result (fun outputs ->
       String.concat ", " (List.map (fun (k, v) -> k ^ " = " ^ v) outputs));
   print_log ();
@@ -115,16 +116,13 @@ let%expect_test "create returns outputs" =
 
 let%expect_test "what-if returns the report" =
   let script, _ = fake_az ~stdout:"Resource changes: 1 to create.\n" () in
-  Azf_deploy.Az_cli.(what_if [ az script; resource_group "my-rg" ] deployment)
-  |> print_result Fun.id;
+  Azf_deploy.Az_cli.what_if (config script []) deployment |> print_result Fun.id;
   [%expect {| Ok Resource changes: 1 to create. |}]
 
 let%expect_test "create resource group" =
   let script, print_log = fake_az () in
-  Azf_deploy.Az_cli.(
-    create_resource_group
-      [ az script; resource_group "my-rg" ]
-      ~location:"westeurope")
+  Azf_deploy.Az_cli.create_resource_group (config script [])
+    ~location:"westeurope"
   |> print_result (fun () -> "()");
   print_log ();
   [%expect
@@ -141,21 +139,24 @@ let%expect_test "create resource group" =
     |}]
 
 let%expect_test "errors" =
-  let run transformers =
-    Azf_deploy.Az_cli.validate transformers deployment
+  let validate az =
+    Azf_deploy.Az_cli.validate (config az []) deployment
     |> print_result (fun () -> "()")
   in
-  run [];
   let script, _ = fake_az ~exit_code:1 () in
-  run Azf_deploy.Az_cli.[ az script; resource_group "my-rg" ];
-  run Azf_deploy.Az_cli.[ az "/nonexistent/az"; resource_group "my-rg" ];
+  validate script;
+  validate "/nonexistent/az";
   let script, _ = fake_az ~stdout:"not json" () in
-  Azf_deploy.Az_cli.(create [ az script; resource_group "my-rg" ] deployment)
+  Azf_deploy.Az_cli.create (config script []) deployment
   |> print_result (fun _ -> "outputs");
+  let script, _ = fake_az ~stdout:{|{ "properties": {} }|} () in
+  Azf_deploy.Az_cli.create (config script []) deployment
+  |> print_result (fun outputs ->
+      string_of_int (List.length outputs) ^ " outputs");
   [%expect
     {|
-    Error: no resource group set
     Error: az exited with code 1: ERROR: something went wrong
     Error: could not run /nonexistent/az; is the Azure CLI installed?
     Error: unexpected output from az: not json
+    Ok 0 outputs
     |}]
