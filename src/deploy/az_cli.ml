@@ -11,13 +11,11 @@ end
 
 module Error = struct
   type t =
-    | Missing_resource_group
     | Az_not_found of string
     | Failed of { exit_code : int; stderr : string }
     | Unexpected_output of string
 
   let to_string = function
-    | Missing_resource_group -> "no resource group set"
     | Az_not_found az ->
         Printf.sprintf "could not run %s; is the Azure CLI installed?" az
     | Failed { exit_code; stderr } ->
@@ -26,31 +24,42 @@ module Error = struct
     | Unexpected_output output -> "unexpected output from az: " ^ output
 end
 
-type config = {
-  resource_group : string option;
-  name : string;
-  mode : Mode.t;
-  parameters : (string * Parameter.Value.t) list;
-  az : string;
-}
-
-let default =
-  {
-    resource_group = None;
-    name = "azf";
-    mode = Incremental;
-    parameters = [];
-    az = "az";
+module Config = struct
+  type t = {
+    az : string;
+    resource_group : string;
+    name : string;
+    mode : Mode.t;
+    parameters : (string * Parameter.Value.t) list;
   }
 
-let resource_group rg c = { c with resource_group = Some rg }
-let name name c = { c with name }
-let mode mode c = { c with mode }
+  let build ~az ~resource_group ~name transformers =
+    List.fold_left
+      (fun c f -> f c)
+      { az; resource_group; name; mode = Incremental; parameters = [] }
+      transformers
 
-let parameter key value c =
-  { c with parameters = c.parameters @ [ (key, value) ] }
+  let mode mode c = { c with mode }
 
-let az az c = { c with az }
+  let parameter key value c =
+    { c with parameters = c.parameters @ [ (key, value) ] }
+end
+
+module Action = struct
+  type t = Validate | What_if | Create
+
+  let to_string = function
+    | Validate -> "validate"
+    | What_if -> "what-if"
+    | Create -> "create"
+
+  (* what-if prints a readable report; create's JSON holds the outputs. *)
+  let output_args = function
+    | Validate -> [ "--output"; "none" ]
+    | What_if -> []
+    | Create -> [ "--output"; "json" ]
+end
+
 let ( let* ) = Result.bind
 
 type value = Parameter.Value.t
@@ -92,41 +101,36 @@ let write_file path contents =
 
 let read_file path = In_channel.with_open_text path In_channel.input_all
 
-let run az args =
-  with_temp_file ".out" @@ fun out ->
-  with_temp_file ".err" @@ fun err ->
+let spawn az args ~stdout ~stderr =
   let open_out path = Unix.openfile path [ O_WRONLY; O_TRUNC ] 0o600 in
-  let fd_out = open_out out in
-  let fd_err = open_out err in
-  let started =
-    Fun.protect
-      ~finally:(fun () ->
-        Unix.close fd_out;
-        Unix.close fd_err)
-      (fun () ->
-        match
-          Unix.create_process az
-            (Array.of_list (az :: args))
-            Unix.stdin fd_out fd_err
-        with
-        | pid -> Ok pid
-        | exception Unix.Unix_error ((ENOENT | EACCES), _, _) ->
-            Error (Error.Az_not_found az))
-  in
-  let* pid = started in
+  let fd_out = open_out stdout in
+  let fd_err = open_out stderr in
+  Fun.protect
+    ~finally:(fun () ->
+      Unix.close fd_out;
+      Unix.close fd_err)
+    (fun () ->
+      match
+        Unix.create_process az
+          (Array.of_list (az :: args))
+          Unix.stdin fd_out fd_err
+      with
+      | pid -> Ok pid
+      | exception Unix.Unix_error ((ENOENT | EACCES), _, _) ->
+          Error (Error.Az_not_found az))
+
+(* Output goes to files rather than pipes, so a chatty az cannot block. *)
+let run az args =
+  with_temp_file ".out" @@ fun stdout ->
+  with_temp_file ".err" @@ fun stderr ->
+  let* pid = spawn az args ~stdout ~stderr in
   match snd (Unix.waitpid [] pid) with
-  | WEXITED 0 -> Ok (read_file out)
+  | WEXITED 0 -> Ok (read_file stdout)
   | WEXITED 127 -> Error (Error.Az_not_found az)
   | WEXITED exit_code | WSIGNALED exit_code | WSTOPPED exit_code ->
-      Error (Error.Failed { exit_code; stderr = read_file err })
+      Error (Error.Failed { exit_code; stderr = read_file stderr })
 
-let configure transformers =
-  let c = List.fold_left (fun c f -> f c) default transformers in
-  match c.resource_group with
-  | Some rg -> Ok (c, rg)
-  | None -> Error Error.Missing_resource_group
-
-let with_parameters_file (c : config) f =
+let with_parameters_file (c : Config.t) f =
   match c.parameters with
   | [] -> f []
   | values ->
@@ -134,76 +138,61 @@ let with_parameters_file (c : config) f =
       write_file path (parameters_file_contents values);
       f [ "--parameters"; "@" ^ path ]
 
-let run_deployment action extra_args transformers deployment =
-  let* c, rg = configure transformers in
+let deployment_args action (c : Config.t) ~template =
+  [
+    "deployment";
+    "group";
+    Action.to_string action;
+    "--resource-group";
+    c.resource_group;
+    "--name";
+    c.name;
+    "--template-file";
+    template;
+    "--mode";
+    Mode.to_string c.mode;
+  ]
+
+let run_deployment action (c : Config.t) deployment =
   with_temp_file ".json" @@ fun template ->
   Deployment.write_file template deployment;
   with_parameters_file c @@ fun parameter_args ->
   run c.az
-    ([
-       "deployment";
-       "group";
-       action;
-       "--resource-group";
-       rg;
-       "--name";
-       c.name;
-       "--template-file";
-       template;
-       "--mode";
-       Mode.to_string c.mode;
-     ]
-    @ parameter_args @ extra_args)
+    (deployment_args action c ~template
+    @ parameter_args @ Action.output_args action)
 
-let validate transformers deployment =
-  run_deployment "validate" [ "--output"; "none" ] transformers deployment
-  |> Result.map ignore
+let validate c deployment =
+  run_deployment Validate c deployment |> Result.map ignore
 
-let what_if transformers deployment =
-  run_deployment "what-if" [] transformers deployment
+let what_if c deployment = run_deployment What_if c deployment
+
+let output_value = function
+  | `String s -> s
+  | json -> Yojson.Safe.to_string json
 
 let outputs_of_json output =
-  let unexpected = Error (Error.Unexpected_output output) in
-  match Yojson.Safe.from_string output with
-  | exception Yojson.Json_error _ -> unexpected
-  | `Assoc fields -> (
-      match List.assoc_opt "properties" fields with
-      | Some (`Assoc properties) -> (
-          match List.assoc_opt "outputs" properties with
-          | None | Some `Null -> Ok []
-          | Some (`Assoc outputs) ->
-              Ok
-                (List.map
-                   (fun (key, output) ->
-                     let value =
-                       match output with
-                       | `Assoc o -> List.assoc_opt "value" o
-                       | _ -> None
-                     in
-                     ( key,
-                       match value with
-                       | Some (`String s) -> s
-                       | Some json -> Yojson.Safe.to_string json
-                       | None -> "null" ))
-                   outputs)
-          | Some _ -> unexpected)
-      | _ -> unexpected)
-  | _ -> unexpected
+  let open Yojson.Safe.Util in
+  match
+    Yojson.Safe.from_string output
+    |> member "properties" |> member "outputs" |> to_option to_assoc
+    |> Option.value ~default:[]
+    |> List.map (fun (key, o) -> (key, output_value (member "value" o)))
+  with
+  | outputs -> Ok outputs
+  | exception (Yojson.Json_error _ | Type_error _) ->
+      Error (Error.Unexpected_output output)
 
-let create transformers deployment =
-  let* output =
-    run_deployment "create" [ "--output"; "json" ] transformers deployment
-  in
+let create c deployment =
+  let* output = run_deployment Create c deployment in
   outputs_of_json output
 
-let create_resource_group transformers ~location =
-  let* c, rg = configure transformers in
+let create_resource_group (c : Config.t) ~location =
   run c.az
     [
       "group";
       "create";
       "--name";
-      rg;
+      c.resource_group;
       "--location";
       location;
       "--output";

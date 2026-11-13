@@ -43,8 +43,9 @@ let template =
 
 let deploy deployment ~group ~location ~password =
   let config =
-    Azf_deploy.Az_cli.
-      [ resource_group group; parameter "DB_PASSWORD" (String password) ]
+    Azf_deploy.Az_cli.Config.(
+      build ~az:"az" ~resource_group:group ~name:"azf-example"
+        [ parameter "DB_PASSWORD" (String password) ])
   in
   let* () = Azf_deploy.Az_cli.create_resource_group config ~location in
   let* outputs = Azf_deploy.Az_cli.create config deployment in

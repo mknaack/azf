@@ -2,9 +2,12 @@
     ([az deployment group ...]). [az] must be installed and logged in.
 
     {[
-      Azf_deploy.Az_cli.create
-        [ resource_group "my-rg"; parameter "DB_PASSWORD" (String password) ]
-        deployment
+      let config =
+        Azf_deploy.Az_cli.Config.(
+          build ~az:"az" ~resource_group:"my-rg" ~name:"my-deployment"
+            [ parameter "DB_PASSWORD" (String password) ])
+      in
+      Azf_deploy.Az_cli.create config deployment
     ]}
 
     The template and parameter values are written to temporary files that are
@@ -21,7 +24,6 @@ end
 
 module Error : sig
   type t =
-    | Missing_resource_group
     | Az_not_found of string  (** The [az] executable that could not be run. *)
     | Failed of { exit_code : int; stderr : string }
         (** [az] ran but failed, e.g. because the template is invalid. *)
@@ -30,49 +32,42 @@ module Error : sig
   val to_string : t -> string
 end
 
-type config = {
-  resource_group : string option;
-  name : string;
-  mode : Mode.t;
-  parameters : (string * Azf.Parameter.Value.t) list;
-  az : string;
-}
+module Config : sig
+  type t = {
+    az : string;  (** The Azure CLI executable, e.g. ["az"]. *)
+    resource_group : string;
+    name : string;
+        (** The deployment name shown in the resource group's deployment
+            history. *)
+    mode : Mode.t;
+    parameters : (string * Azf.Parameter.Value.t) list;
+  }
 
-val default : config
-(** No resource group, deployment name ["azf"], {!Mode.Incremental}, no
-    parameter values and executable ["az"]. *)
+  val build :
+    az:string -> resource_group:string -> name:string -> (t -> t) list -> t
+  (** Starts from {!Mode.Incremental} and no parameter values, then applies the
+      transformers in order. *)
 
-val resource_group : string -> config -> config
+  val mode : Mode.t -> t -> t
 
-val name : string -> config -> config
-(** The deployment name shown in the resource group's deployment history. *)
+  val parameter : string -> Azf.Parameter.Value.t -> t -> t
+  (** A value for a template parameter, e.g. a [securestring] parameter added by
+      [Web_app.add_secret_setting]. *)
+end
 
-val mode : Mode.t -> config -> config
-
-val parameter : string -> Azf.Parameter.Value.t -> config -> config
-(** A value for a template parameter, e.g. a [securestring] parameter added by
-    [Web_app.add_secret_setting]. *)
-
-val az : string -> config -> config
-(** The Azure CLI executable to run, if not ["az"] on the [PATH]. *)
-
-val validate :
-  (config -> config) list -> Azf.Deployment.t -> (unit, Error.t) result
+val validate : Config.t -> Azf.Deployment.t -> (unit, Error.t) result
 (** Runs [az deployment group validate]. *)
 
-val what_if :
-  (config -> config) list -> Azf.Deployment.t -> (string, Error.t) result
+val what_if : Config.t -> Azf.Deployment.t -> (string, Error.t) result
 (** Runs [az deployment group what-if] and returns its report of what would
     change. *)
 
 val create :
-  (config -> config) list ->
-  Azf.Deployment.t ->
-  ((string * string) list, Error.t) result
+  Config.t -> Azf.Deployment.t -> ((string * string) list, Error.t) result
 (** Runs [az deployment group create] and returns the template's outputs by
     name. String outputs are returned as is, others as JSON. *)
 
 val create_resource_group :
-  (config -> config) list -> location:string -> (unit, Error.t) result
-(** Runs [az group create] for the configured resource group. Succeeds if the
+  Config.t -> location:string -> (unit, Error.t) result
+(** Runs [az group create] for the config's resource group. Succeeds if the
     group already exists in the same location. *)

@@ -84,7 +84,7 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 
 ## 6. Deployment path
 
-- `Azf_deploy.Az_cli` shells out to the Azure CLI (simplest, matches Farmer): `validate`, `what_if` and `create` run `az deployment group validate|what-if|create`, and `create_resource_group` runs `az group create`. It is configured with the usual transformer list (`resource_group`, `name`, `mode`, `parameter`, `az`) and returns `(_, Az_cli.Error.t) result`; `create` returns the template's outputs.
+- `Azf_deploy.Az_cli` shells out to the Azure CLI (simplest, matches Farmer): `validate`, `what_if` and `create` run `az deployment group validate|what-if|create`, and `create_resource_group` runs `az group create`. It takes an `Az_cli.Config.t` built with `Config.build ~az ~resource_group ~name [ mode Complete; parameter … ]` (the required settings are labelled arguments, the optional ones transformers) and returns `(_, Az_cli.Error.t) result`; `create` returns the template's outputs.
 - The template and parameter values (typed `Parameter.Value.t`) go in temporary files (0600, removed afterwards), so secrets never appear on the command line.
 - `Deployment.write_file` writes the template for anyone running `az` or Bicep themselves.
 - Tested with expect tests against a fake `az` script that logs its arguments.
