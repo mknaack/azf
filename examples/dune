@@ -6,4 +6,4 @@
 (executable
  (name web_app)
  (modules web_app)
- (libraries azf azf.resources))
+ (libraries azf azf.resources azf.deploy))

@@ -108,3 +108,8 @@ let to_string (d : t) =
       outputs = List.map to_output d.outputs;
     }
   |> Yojson.Safe.pretty_to_string
+
+let write_file path d =
+  Out_channel.with_open_text path (fun oc ->
+      Out_channel.output_string oc (to_string d);
+      Out_channel.output_char oc '\n')
