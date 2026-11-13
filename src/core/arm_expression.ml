@@ -2,7 +2,7 @@ type t =
   | String of string
   | Int of int
   | Bool of bool
-  | Parameters of string
+  | Parameter of Parameter.t
   | Variables of string
   | Concat of t list
   | Resource_id of Resource_id.t
@@ -15,10 +15,25 @@ let resource_ids e =
     if List.exists (Resource_id.equal id) ids then ids else id :: ids
   in
   let rec collect ids = function
-    | String _ | Int _ | Bool _ | Parameters _ | Variables _ -> ids
+    | String _ | Int _ | Bool _ | Parameter _ | Variables _ -> ids
     | Resource_id id | Reference id -> add ids id
     | Property (e, _) -> collect ids e
     | Concat es | Call (_, es) -> List.fold_left collect ids es
+  in
+  List.rev (collect [] e)
+
+let parameters e =
+  let add params (p : Parameter.t) =
+    if List.exists (fun (q : Parameter.t) -> String.equal p.name q.name) params
+    then params
+    else p :: params
+  in
+  let rec collect params = function
+    | String _ | Int _ | Bool _ | Variables _ | Resource_id _ | Reference _ ->
+        params
+    | Parameter p -> add params p
+    | Property (e, _) -> collect params e
+    | Concat es | Call (_, es) -> List.fold_left collect params es
   in
   List.rev (collect [] e)
 
@@ -34,7 +49,7 @@ let rec inner = function
   | String s -> quote s
   | Int i -> string_of_int i
   | Bool b -> call (string_of_bool b) []
-  | Parameters name -> call "parameters" [ quote name ]
+  | Parameter p -> call "parameters" [ quote p.name ]
   | Variables name -> call "variables" [ quote name ]
   | Concat parts -> call "concat" (List.map inner parts)
   | Resource_id id -> resource_id_call id

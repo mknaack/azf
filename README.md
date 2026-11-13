@@ -15,6 +15,8 @@ let template =
 
 Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits). All builders share `Azf_resources.Error.t`, so they combine with `let*`.
 
+Dependencies and parameters are worked out from the expressions resources use: a web app whose settings use a storage account's connection string gets that account in its `dependsOn`, and `Web_app.add_secret_setting "DB_PASSWORD"` adds a `securestring` parameter to the template.
+
 See [`docs/implementation-plan.md`](docs/implementation-plan.md) for the design and roadmap.
 
 ## Development

@@ -75,7 +75,10 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 ## 5. Parameters, outputs, secrets
 
 - `parameter` support: values hoisted into the template's `parameters` block, with `secureString` for secrets (Farmer's `SecureParameter`).
-- `output` values referencing `reference()` expressions.
+  - `Arm_expression.Parameter of Parameter.t` carries the whole definition, so any parameter a resource or output uses is added to the template automatically (resources record them in `Arm_resource.parameters`, like `references`). `Deployment.add_parameter` is only for unused ones; on a name clash the first wins.
+  - Types `string`, `securestring`, `int`, `bool`, `array`, `object`, `secureObject`; options `~default`, `~allowed`, `~description`, `~min_value`/`~max_value`, `~min_length`/`~max_length`. Defaults are literal `Parameter.Value.t`s.
+  - Resource helpers such as `Web_app.add_secret_setting "DB_PASSWORD"` create a secure parameter for the value.
+- `output` values referencing `reference()` expressions, typed `string`/`int`/`bool`/`array`/`object`. Resources expose expressions worth outputting, e.g. `Web_app.default_host_name`, `Storage_account.blob_endpoint`.
 
 ## 6. Deployment path
 

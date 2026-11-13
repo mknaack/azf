@@ -24,6 +24,7 @@ type t = {
   kind : string option;
   depends_on : dependency list;
   references : Resource_id.t list;
+  parameters : Parameter.t list;
   properties : json;
 }
 

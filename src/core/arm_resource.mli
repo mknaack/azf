@@ -14,6 +14,9 @@ type t = {
       (** Resources used in this resource's expressions. Not emitted;
           {!Deployment.to_string} adds the ones in the same deployment to
           [dependsOn]. *)
+  parameters : Parameter.t list;
+      (** Parameters used in this resource's expressions. Not emitted;
+          {!Deployment.to_string} adds them to the template. *)
   properties : Yojson.Safe.t;
 }
 

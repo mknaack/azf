@@ -21,6 +21,7 @@ let template =
           runtime (Dotnet "8.0");
           add_setting "STORAGE_CONNECTION"
             (Storage_account.connection_string storage);
+          add_secret_setting "DB_PASSWORD";
         ])
   in
   Ok
@@ -34,6 +35,9 @@ let template =
            ];
          Deployment.add_output
            (Output.string "hostName" (Web_app.default_host_name app));
+         Deployment.add_output
+           (Output.string "blobEndpoint"
+              (Storage_account.blob_endpoint storage));
        ])
 
 let () =

@@ -104,6 +104,13 @@ let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
 let resource_id t = Resource_id.make ~type_name t.account_name
 
+let primary_endpoint t endpoint =
+  Arm_expression.Property
+    (Reference (resource_id t), "primaryEndpoints." ^ endpoint)
+
+let blob_endpoint t = primary_endpoint t "blob"
+let web_endpoint t = primary_endpoint t "web"
+
 let connection_string t =
   let keys =
     Arm_expression.Call
@@ -137,6 +144,7 @@ let to_arm_resource { account_name; config = c } : Arm_resource.t =
     kind = Some (Kind.to_string c.kind);
     depends_on = c.depends_on;
     references = Arm_expression.resource_ids c.location;
+    parameters = Arm_expression.parameters c.location;
     properties =
       yojson_of_properties
         {

@@ -93,6 +93,10 @@ let add_settings settings c =
   }
 
 let add_setting key value = add_settings [ (key, value) ]
+
+let add_secret_setting key =
+  add_setting key (Parameter (Parameter.secure_string key))
+
 let location location c = { c with location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
@@ -162,6 +166,9 @@ let site_config ~linux ~always_on ~app_settings runtime =
 
 let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
   let plan_id = Server_farm.resource_id plan in
+  let expressions =
+    c.location :: Resource_id plan_id :: List.map snd c.app_settings
+  in
   {
     type_name;
     api_version;
@@ -171,9 +178,8 @@ let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
     sku = None;
     kind = Some (if Server_farm.is_linux plan then "app,linux" else "app");
     depends_on = c.depends_on;
-    references =
-      List.concat_map Arm_expression.resource_ids
-        (c.location :: Resource_id plan_id :: List.map snd c.app_settings);
+    references = List.concat_map Arm_expression.resource_ids expressions;
+    parameters = List.concat_map Arm_expression.parameters expressions;
     properties =
       yojson_of_properties
         {
