@@ -43,6 +43,11 @@ let validate_retention days =
   if days >= 30 && days <= 730 then Ok days
   else Error (Error.Log_analytics (Invalid_retention days))
 
+let validate_daily_cap = function
+  | Some gb when not (Float.is_finite gb && gb > 0.) ->
+      Error (Error.Log_analytics (Invalid_daily_cap gb))
+  | _ -> Ok ()
+
 let ( let* ) = Result.bind
 
 let build transformers =
@@ -52,6 +57,7 @@ let build transformers =
   in
   let* workspace_name = validate_name name in
   let* _ = validate_retention config.retention_days in
+  let* () = validate_daily_cap config.daily_cap_gb in
   Ok { workspace_name; config }
 
 let name name c = { c with name = Some name }
