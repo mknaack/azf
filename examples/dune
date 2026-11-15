@@ -1,9 +1,9 @@
-(executable
- (name storage_account)
- (modules storage_account)
+(executables
+ (names first_app storage_account web_app)
+ (modules first_app storage_account web_app)
  (libraries azf azf.resources))
 
 (executable
- (name web_app)
- (modules web_app)
+ (name deploy)
+ (modules deploy)
  (libraries azf azf.resources azf.deploy))

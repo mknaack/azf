@@ -52,12 +52,13 @@ type config = {
   kind : Kind.t;
   access_tier : Access_tier.t;
   https_only : bool;
-  location : Arm_expression.t;
+  location : Arm_expression.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
 
-type t = { account_name : string; config : config }
+type state = { account_name : string; config : config }
+type t = state Resource.t
 
 let type_name = "Microsoft.Storage/storageAccounts"
 let api_version = "2023-01-01"
@@ -69,7 +70,7 @@ let default =
     kind = Kind.Storage_v2;
     access_tier = Access_tier.Hot;
     https_only = true;
-    location = Arm_expression.resource_group_location;
+    location = None;
     tags = [];
     depends_on = [];
   }
@@ -84,25 +85,17 @@ let validate_name name =
   then Ok name
   else Error (Error.Storage_account (Invalid_name name))
 
-let build transformers =
-  let config = List.fold_left (fun c f -> f c) default transformers in
-  match config.name with
-  | None -> Error (Error.Storage_account Missing_name)
-  | Some name ->
-      Result.map
-        (fun account_name -> { account_name; config })
-        (validate_name name)
-
 let name name c = { c with name = Some name }
 let sku sku c = { c with sku }
 let kind kind c = { c with kind }
 let access_tier access_tier c = { c with access_tier }
 let https_only https_only c = { c with https_only }
-let location location c = { c with location }
+let location location c = { c with location = Some location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id t = Resource_id.make ~type_name t.account_name
+let account_name t = (Resource.state t).account_name
+let resource_id t = Resource_id.make ~type_name (account_name t)
 
 let primary_endpoint t endpoint =
   Arm_expression.Property
@@ -119,7 +112,7 @@ let connection_string t =
   Arm_expression.Concat
     [
       String "DefaultEndpointsProtocol=https;AccountName=";
-      String t.account_name;
+      String (account_name t);
       String ";AccountKey=";
       Property (keys, "keys[0].value");
       String ";EndpointSuffix=";
@@ -133,18 +126,19 @@ type properties = {
 }
 [@@deriving yojson_of]
 
-let to_arm_resource { account_name; config = c } : Arm_resource.t =
+let arm_resource { account_name; config = c } ~location : Arm_resource.t =
+  let location = Option.value c.location ~default:location in
   {
     type_name;
     api_version;
     name = account_name;
-    location = Some c.location;
+    location = Some location;
     tags = c.tags;
     sku = Some (Azf.Sku.make (Sku.to_string c.sku));
     kind = Some (Kind.to_string c.kind);
     depends_on = c.depends_on;
-    references = Arm_expression.resource_ids c.location;
-    parameters = Arm_expression.parameters c.location;
+    references = Arm_expression.resource_ids location;
+    parameters = Arm_expression.parameters location;
     properties =
       yojson_of_properties
         {
@@ -153,3 +147,20 @@ let to_arm_resource { account_name; config = c } : Arm_resource.t =
           minimum_tls_version = "TLS1_2";
         };
   }
+
+let emit state ~location = [ arm_resource state ~location ]
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  match config.name with
+  | None -> Error (Error.Storage_account Missing_name)
+  | Some name ->
+      Result.map
+        (fun account_name ->
+          let state = { account_name; config } in
+          Resource.make state (emit state))
+        (validate_name name)
+
+let to_arm_resource t =
+  arm_resource (Resource.state t)
+    ~location:Arm_expression.resource_group_location

@@ -39,21 +39,22 @@ type config = {
   sku : Sku.t;
   os : Os.t;
   capacity : int;
-  location : Azf.Arm_expression.t;
+  location : Azf.Arm_expression.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
 (** Builder state. Turned into a validated {!t} by {!build}. *)
 
-type t
+type state
+
+type t = state Resource.t
 (** A validated server farm. *)
 
 val type_name : string
 val api_version : string
 
 val default : config
-(** No name, [F1], [Windows], one worker, located in the resource group's
-    location. *)
+(** No name, [F1], [Windows], one worker, no location (see {!val-location}) . *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 1–60 characters, letters, digits and hyphens. *)
@@ -70,6 +71,9 @@ val capacity : int -> config -> config
 (** Number of workers. *)
 
 val location : Azf.Arm_expression.t -> config -> config
+(** Without it, the resource goes in the {!Arm.location} of its deployment, or
+    else the resource group's location. *)
+
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

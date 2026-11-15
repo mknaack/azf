@@ -24,12 +24,13 @@ type config = {
   always_on : bool;
   runtime : Runtime.t option;
   app_settings : (string * Arm_expression.t) list;
-  location : Arm_expression.t;
+  location : Arm_expression.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
 
-type t = { app_name : string; plan : Server_farm.t; config : config }
+type state = { app_name : string; plan : Server_farm.t; config : config }
+type t = state Resource.t
 
 let type_name = "Microsoft.Web/sites"
 let api_version = "2022-09-01"
@@ -42,7 +43,7 @@ let default =
     always_on = false;
     runtime = None;
     app_settings = [];
-    location = Arm_expression.resource_group_location;
+    location = None;
     tags = [];
     depends_on = [];
   }
@@ -68,17 +69,6 @@ let check_runtime plan = function
       Error (Error.Web_app (Python_requires_linux version))
   | _ -> Ok ()
 
-let build transformers =
-  let config = List.fold_left (fun c f -> f c) default transformers in
-  let* name = Option.to_result ~none:(Error.Web_app Missing_name) config.name in
-  let* app_name = validate_name name in
-  let* plan =
-    Option.to_result ~none:(Error.Web_app Missing_service_plan)
-      config.service_plan
-  in
-  let* () = check_runtime plan config.runtime in
-  Ok { app_name; plan; config }
-
 let name name c = { c with name = Some name }
 let service_plan plan c = { c with service_plan = Some plan }
 let https_only https_only c = { c with https_only }
@@ -97,11 +87,11 @@ let add_setting key value = add_settings [ (key, value) ]
 let add_secret_setting key =
   add_setting key (Parameter (Parameter.secure_string key))
 
-let location location c = { c with location }
+let location location c = { c with location = Some location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id t = Resource_id.make ~type_name t.app_name
+let resource_id t = Resource_id.make ~type_name (Resource.state t).app_name
 
 let default_host_name t =
   Arm_expression.Property (Reference (resource_id t), "defaultHostName")
@@ -164,16 +154,17 @@ let site_config ~linux ~always_on ~app_settings runtime =
       }
   | Some (Runtime.Python _) -> none
 
-let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
+let arm_resource { app_name; plan; config = c } ~location : Arm_resource.t =
+  let location = Option.value c.location ~default:location in
   let plan_id = Server_farm.resource_id plan in
   let expressions =
-    c.location :: Resource_id plan_id :: List.map snd c.app_settings
+    location :: Resource_id plan_id :: List.map snd c.app_settings
   in
   {
     type_name;
     api_version;
     name = app_name;
-    location = Some c.location;
+    location = Some location;
     tags = c.tags;
     sku = None;
     kind = Some (if Server_farm.is_linux plan then "app,linux" else "app");
@@ -194,3 +185,21 @@ let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
               c.runtime;
         };
   }
+
+let emit state ~location = [ arm_resource state ~location ]
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  let* name = Option.to_result ~none:(Error.Web_app Missing_name) config.name in
+  let* app_name = validate_name name in
+  let* plan =
+    Option.to_result ~none:(Error.Web_app Missing_service_plan)
+      config.service_plan
+  in
+  let* () = check_runtime plan config.runtime in
+  let state = { app_name; plan; config } in
+  Ok (Resource.make state (emit state))
+
+let to_arm_resource t =
+  arm_resource (Resource.state t)
+    ~location:Arm_expression.resource_group_location

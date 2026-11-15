@@ -43,21 +43,23 @@ type config = {
   kind : Kind.t;
   access_tier : Access_tier.t;
   https_only : bool;
-  location : Azf.Arm_expression.t;
+  location : Azf.Arm_expression.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
 (** Builder state. Turned into a validated {!t} by {!build}. *)
 
-type t
+type state
+
+type t = state Resource.t
 (** A validated storage account. *)
 
 val type_name : string
 val api_version : string
 
 val default : config
-(** No name, [Standard_LRS], [Storage_v2], [Hot], HTTPS only, located in the
-    resource group's location. *)
+(** No name, [Standard_LRS], [Storage_v2], [Hot], HTTPS only, no location (see
+    {!val-location}) . *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 3–24 characters, lowercase letters and digits only. *)
@@ -70,7 +72,11 @@ val sku : Sku.t -> config -> config
 val kind : Kind.t -> config -> config
 val access_tier : Access_tier.t -> config -> config
 val https_only : bool -> config -> config
+
 val location : Azf.Arm_expression.t -> config -> config
+(** Without it, the resource goes in the {!Arm.location} of its deployment, or
+    else the resource group's location. *)
+
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

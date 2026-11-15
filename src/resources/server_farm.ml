@@ -54,12 +54,13 @@ type config = {
   sku : Sku.t;
   os : Os.t;
   capacity : int;
-  location : Arm_expression.t;
+  location : Arm_expression.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
 
-type t = { farm_name : string; config : config }
+type state = { farm_name : string; config : config }
+type t = state Resource.t
 
 let type_name = "Microsoft.Web/serverfarms"
 let api_version = "2022-09-01"
@@ -70,7 +71,7 @@ let default =
     sku = Sku.F1;
     os = Os.Windows;
     capacity = 1;
-    location = Arm_expression.resource_group_location;
+    location = None;
     tags = [];
     depends_on = [];
   }
@@ -85,34 +86,26 @@ let validate_name name =
     Ok name
   else Error (Error.Server_farm (Invalid_name name))
 
-let build transformers =
-  let config = List.fold_left (fun c f -> f c) default transformers in
-  match config.name with
-  | None -> Error (Error.Server_farm Missing_name)
-  | Some _ when config.capacity < 1 ->
-      Error (Error.Server_farm (Invalid_capacity config.capacity))
-  | Some name ->
-      Result.map (fun farm_name -> { farm_name; config }) (validate_name name)
-
 let name name c = { c with name = Some name }
 let sku sku c = { c with sku }
 let os os c = { c with os }
 let capacity capacity c = { c with capacity }
-let location location c = { c with location }
+let location location c = { c with location = Some location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id t = Resource_id.make ~type_name t.farm_name
-let is_linux t = t.config.os = Os.Linux
+let resource_id t = Resource_id.make ~type_name (Resource.state t).farm_name
+let is_linux t = (Resource.state t).config.os = Os.Linux
 
 type properties = { reserved : bool } [@@deriving yojson_of]
 
-let to_arm_resource { farm_name; config = c } : Arm_resource.t =
+let arm_resource { farm_name; config = c } ~location : Arm_resource.t =
+  let location = Option.value c.location ~default:location in
   {
     type_name;
     api_version;
     name = farm_name;
-    location = Some c.location;
+    location = Some location;
     tags = c.tags;
     sku =
       Some
@@ -120,7 +113,26 @@ let to_arm_resource { farm_name; config = c } : Arm_resource.t =
            (Sku.to_string c.sku));
     kind = Some (match c.os with Os.Windows -> "app" | Os.Linux -> "linux");
     depends_on = c.depends_on;
-    references = Arm_expression.resource_ids c.location;
-    parameters = Arm_expression.parameters c.location;
+    references = Arm_expression.resource_ids location;
+    parameters = Arm_expression.parameters location;
     properties = yojson_of_properties { reserved = c.os = Os.Linux };
   }
+
+let emit state ~location = [ arm_resource state ~location ]
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  match config.name with
+  | None -> Error (Error.Server_farm Missing_name)
+  | Some _ when config.capacity < 1 ->
+      Error (Error.Server_farm (Invalid_capacity config.capacity))
+  | Some name ->
+      Result.map
+        (fun farm_name ->
+          let state = { farm_name; config } in
+          Resource.make state (emit state))
+        (validate_name name)
+
+let to_arm_resource t =
+  arm_resource (Resource.state t)
+    ~location:Arm_expression.resource_group_location
