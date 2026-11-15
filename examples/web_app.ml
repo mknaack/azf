@@ -1,5 +1,6 @@
 (* Farmer's canonical example: a web app on an App Service plan, with a
-   storage account connection string in its settings.
+   storage account connection string in its settings, and App Insights
+   telemetry stored in a Log Analytics workspace.
    dune exec examples/web_app.exe > template.json
    DB_PASSWORD=... dune exec examples/web_app.exe -- deploy my-rg westeurope *)
 open Azf
@@ -12,6 +13,8 @@ let template =
   let* plan =
     Server_farm.(build [ name "azf-example-plan"; sku B1; os Linux ])
   in
+  let* logs = Log_analytics.(build [ name "azf-example-logs" ]) in
+  let* ai = App_insights.(build [ name "azf-example-ai"; workspace logs ]) in
   let* app =
     Web_app.(
       build
@@ -23,6 +26,7 @@ let template =
           add_setting "STORAGE_CONNECTION"
             (Storage_account.connection_string storage);
           add_secret_setting "DB_PASSWORD";
+          app_insights ai;
         ])
   in
   Ok
@@ -31,6 +35,8 @@ let template =
          Deployment.add_resources
            [
              Storage_account.to_arm_resource storage;
+             Log_analytics.to_arm_resource logs;
+             App_insights.to_arm_resource ai;
              Server_farm.to_arm_resource plan;
              Web_app.to_arm_resource app;
            ];

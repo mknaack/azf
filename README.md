@@ -24,9 +24,14 @@ Dependencies and parameters are worked out from the expressions resources use: a
 | `Storage_account` | `Microsoft.Storage/storageAccounts` |
 | `Server_farm` | `Microsoft.Web/serverfarms` |
 | `Web_app` | `Microsoft.Web/sites` |
+| `Log_analytics` | `Microsoft.OperationalInsights/workspaces` |
+| `App_insights` | `Microsoft.Insights/components` (workspace-based) |
 | `Cosmos_db` | `Microsoft.DocumentDB/databaseAccounts` (NoSQL), with `sqlDatabases` and `containers` |
 
 ```ocaml
+let* logs = Log_analytics.(build [ name "my-logs" ]) in
+let* ai = App_insights.(build [ name "my-ai"; workspace logs ]) in
+let* app = Web_app.(build [ name "myapp"; service_plan plan; app_insights ai ]) in
 let* orders = Cosmos_db.Container.(build [ name "orders"; partition_key [ "/customerId" ] ]) in
 let* shop = Cosmos_db.Database.(build [ name "shop"; throughput (Autoscale 1000); add_container orders ]) in
 let* cosmos = Cosmos_db.(build [ name "mycosmos"; add_database shop ]) in
