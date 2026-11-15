@@ -299,3 +299,23 @@ let%expect_test "sku omits unset fields" =
       "properties": {}
     }
     |}]
+
+let%expect_test "locations" =
+  [
+    Location.Resource_group;
+    West_europe;
+    East_us_2;
+    Us_dod_central;
+    Region "austriaeast";
+    Parameter (Parameter.string "location");
+  ]
+  |> List.iter (fun l -> print_expr (Location.to_expression l));
+  [%expect
+    {|
+    [resourceGroup().location]
+    westeurope
+    eastus2
+    usdodcentral
+    austriaeast
+    [parameters('location')]
+    |}]

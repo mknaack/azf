@@ -24,7 +24,7 @@ type config = {
   always_on : bool;
   runtime : Runtime.t option;
   app_settings : (string * Arm_expression.t) list;
-  location : Arm_expression.t option;
+  location : Location.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
@@ -155,7 +155,9 @@ let site_config ~linux ~always_on ~app_settings runtime =
   | Some (Runtime.Python _) -> none
 
 let arm_resource { app_name; plan; config = c } ~location : Arm_resource.t =
-  let location = Option.value c.location ~default:location in
+  let location =
+    Option.fold ~none:location ~some:Location.to_expression c.location
+  in
   let plan_id = Server_farm.resource_id plan in
   let expressions =
     location :: Resource_id plan_id :: List.map snd c.app_settings

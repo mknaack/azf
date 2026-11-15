@@ -32,6 +32,7 @@ azf/
 │   │   ├── resource_id.ml(i)
 │   │   ├── arm_resource.ml(i)
 │   │   ├── parameter.ml(i)
+│   │   ├── location.ml(i)      # one constructor per Azure region, plus Region "…"
 │   │   ├── output.ml(i)
 │   │   ├── location.ml(i)      # Azure regions
 │   │   └── deployment.ml(i)    # Deployment.t, to_string
@@ -68,6 +69,7 @@ azf/
 
 - `Arm_resource.t` — `{ type_name; api_version; name; properties : Yojson.Safe.t; depends_on; references; location; tags }`. `references` lists the resources used in the resource's expressions; `Deployment.to_string` adds those in the same deployment to `dependsOn`.
 - `Deployment.t` — collection of resources + parameters + outputs.
+- `Location.t` — `Resource_group`, one constructor per Azure region (`West_europe`, …), `Region "…"` for any other region and `Parameter p`. Resource builders and `Arm.location` take a `Location.t`; a resource without one uses its deployment's `Arm.location`, or else the resource group's.
 - `Deployment.to_string : Deployment.t -> string` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
 - `Arm_expression` AST for ARM template functions (`resourceId`, `concat`, `reference`, `parameters`, `variables`) that serializes to `"[resourceId('Microsoft.Web/sites', name)]"` strings.
 
