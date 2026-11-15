@@ -8,7 +8,7 @@ Replicate Farmer's three layers:
 
 - **Resource builders** — F# computation expressions like `webApp { name "x"; sku S1 }` that collect config into a record. In OCaml, use transformer functions: each builder takes a list of `config -> config` functions, e.g. `Web_app.build [ name "myapp"; sku S1 ]`.
 - **Resource interface** — each builder emits one or more `Arm_resource.t` values (type name + JSON body + dependencies).
-- **Deployment builder** — aggregates resources, parameters, outputs, and serializes to an ARM template JSON (`$schema`, `resources[]`, `parameters`, `outputs`).
+- **Deployment builder** — aggregates resources, parameters, outputs, and serializes to an ARM template JSON (`$schema`, `resources[]`, `parameters`, `outputs`). `Azf.Deployment` takes raw `Arm_resource.t`s; `Azf_resources.Arm` is Farmer's `arm { ... }`: `Arm.(build [ location North_europe; add_resource plan; add_resource app ])` takes any builder's result (every builder's `t` is a `'state Resource.t`), gives resources without their own location the deployment's (`Azf.Location.t`), rejects duplicate resources, and `Arm.quick_write "name"` writes `name.json` like Farmer's `Writer.quickWrite`.
 
 ## 2. Project skeleton
 
@@ -34,9 +34,12 @@ azf/
 │   │   ├── parameter.ml(i)
 │   │   ├── location.ml(i)      # one constructor per Azure region, plus Region "…"
 │   │   ├── output.ml(i)
+│   │   ├── location.ml(i)      # Azure regions
 │   │   └── deployment.ml(i)    # Deployment.t, to_string
 │   ├── resources/              # library `azf.resources` (module Azf_resources)
 │   │   ├── dune
+│   │   ├── resource.ml(i)      # 'state Resource.t: what every builder returns
+│   │   ├── arm.ml(i)           # Farmer's `arm { ... }` deployment builder
 │   │   ├── storage_account.ml(i)
 │   │   ├── server_farm.ml(i)
 │   │   └── web_app.ml(i)
@@ -45,7 +48,10 @@ azf/
 │       └── az_cli.ml(i)        # Azf_deploy.Az_cli: validate / what_if / create via the `az` CLI
 ├── examples/
 │   ├── dune
-│   └── web_app_with_storage.ml # Farmer's canonical example
+│   ├── first_app.ml            # Farmer's first example: a web app and its plan
+│   ├── storage_account.ml
+│   ├── web_app.ml              # Farmer's canonical example: web app + storage
+│   └── deploy.ml               # deploying with Azf_deploy.Az_cli
 └── test/
     ├── core/                   # expect tests: Arm_expression, Resource_id, Deployment.to_string
     │   └── dune                # (inline_tests) (preprocess (pps ppx_expect))
@@ -63,7 +69,7 @@ azf/
 
 - `Arm_resource.t` — `{ type_name; api_version; name; properties : Yojson.Safe.t; depends_on; references; location; tags }`. `references` lists the resources used in the resource's expressions; `Deployment.to_string` adds those in the same deployment to `dependsOn`.
 - `Deployment.t` — collection of resources + parameters + outputs.
-- `Location.t` — `Resource_group` (the default), one constructor per Azure region (`West_europe`, …), `Region "…"` for any other region and `Parameter p`. Resource builders take `location : Location.t`.
+- `Location.t` — `Resource_group`, one constructor per Azure region (`West_europe`, …), `Region "…"` for any other region and `Parameter p`. Resource builders and `Arm.location` take a `Location.t`; a resource without one uses its deployment's `Arm.location`, or else the resource group's.
 - `Deployment.to_string : Deployment.t -> string` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
 - `Arm_expression` AST for ARM template functions (`resourceId`, `concat`, `reference`, `parameters`, `variables`) that serializes to `"[resourceId('Microsoft.Web/sites', name)]"` strings.
 
@@ -108,7 +114,7 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 ## 8. Later enhancements
 
 - Bicep emission in addition to JSON.
-- Location/tag inheritance from deployment level down to resources.
+- Tag inheritance from deployment level down to resources (location is done, via `Arm.location`).
 
 ## Milestone order
 
