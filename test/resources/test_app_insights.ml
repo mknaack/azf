@@ -57,6 +57,25 @@ let%expect_test "all settings" =
     }
     |}]
 
+let%expect_test "names starting with a bracket are escaped" =
+  print_result App_insights.(build [ name "[prod]"; workspace logs ]);
+  [%expect
+    {|
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[[prod]",
+      "location": "[resourceGroup().location]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', 'my-logs')]",
+        "IngestionMode": "LogAnalytics",
+        "DisableIpMasking": false
+      }
+    }
+    |}]
+
 let%expect_test "missing name and workspace" =
   print_result (App_insights.build [ App_insights.workspace logs ]);
   print_result App_insights.(build [ name "my-ai" ]);
