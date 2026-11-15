@@ -91,3 +91,18 @@ let%expect_test "retention limits" =
     ok 730
     Invalid Log Analytics retention 731 days: must be 30-730
     |}]
+
+let%expect_test "daily cap limits" =
+  [ 0.; -1.; nan; infinity; 0.1 ]
+  |> List.iter (fun gb ->
+      match Log_analytics.(build [ name "my-logs"; daily_cap_gb gb ]) with
+      | Ok _ -> Printf.printf "ok %g\n" gb
+      | Error e -> print_endline (Error.to_string e));
+  [%expect
+    {|
+    Invalid Log Analytics daily cap 0 GB: must be a positive number
+    Invalid Log Analytics daily cap -1 GB: must be a positive number
+    Invalid Log Analytics daily cap nan GB: must be a positive number
+    Invalid Log Analytics daily cap inf GB: must be a positive number
+    ok 0.1
+    |}]

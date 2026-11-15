@@ -30,7 +30,11 @@ module Web_app : sig
 end
 
 module Log_analytics : sig
-  type t = Missing_name | Invalid_name of string | Invalid_retention of int
+  type t =
+    | Missing_name
+    | Invalid_name of string
+    | Invalid_retention of int
+    | Invalid_daily_cap of float
 
   val to_string : t -> string
 end

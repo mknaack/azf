@@ -33,7 +33,7 @@ val validate_name : string -> (string, Error.t) result
 
 val build : (config -> config) list -> (t, Error.t) result
 (** Applies the transformers to {!default} in order and validates the result.
-    Retention must be 30–730 days. *)
+    Retention must be 30–730 days and a daily cap a positive finite number. *)
 
 val name : string -> config -> config
 val retention_days : int -> config -> config

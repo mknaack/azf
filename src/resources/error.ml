@@ -44,7 +44,11 @@ module Web_app = struct
 end
 
 module Log_analytics = struct
-  type t = Missing_name | Invalid_name of string | Invalid_retention of int
+  type t =
+    | Missing_name
+    | Invalid_name of string
+    | Invalid_retention of int
+    | Invalid_daily_cap of float
 
   let to_string = function
     | Missing_name -> "Log Analytics workspace name is required"
@@ -57,6 +61,9 @@ module Log_analytics = struct
     | Invalid_retention days ->
         Printf.sprintf "Invalid Log Analytics retention %d days: must be 30-730"
           days
+    | Invalid_daily_cap gb ->
+        Printf.sprintf
+          "Invalid Log Analytics daily cap %g GB: must be a positive number" gb
 end
 
 module App_insights = struct
