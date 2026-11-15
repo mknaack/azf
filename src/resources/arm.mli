@@ -16,7 +16,7 @@ type config
 
 val build : (config -> config) list -> (Azf.Deployment.t, Error.t) result
 (** Applies the transformers in order. Fails if two resources have the same type
-    and name. *)
+    and name, ignoring case as Azure does. *)
 
 val location : Azf.Location.t -> config -> config
 (** Where resources built without a [location] go. Defaults to the resource

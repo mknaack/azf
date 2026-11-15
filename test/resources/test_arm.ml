@@ -134,7 +134,7 @@ let%expect_test "without a location, resources use the resource group's" =
 let%expect_test "duplicate resources" =
   print_result
     (let* plan = Server_farm.(build [ name "myplan" ]) in
-     let* other = Server_farm.(build [ name "myplan"; sku B1 ]) in
+     let* other = Server_farm.(build [ name "MyPlan"; sku B1 ]) in
      Arm.(build [ add_resource plan; add_resource other ]));
   [%expect
     {| Resource Microsoft.Web/serverfarms "myplan" is added more than once |}]

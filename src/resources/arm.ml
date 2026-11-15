@@ -18,9 +18,17 @@ let add_arm_resource r = add_emit (fun ~location:_ -> [ r ])
 let add_parameter p c = { c with parameters = c.parameters @ [ p ] }
 let add_output o c = { c with outputs = c.outputs @ [ o ] }
 
+(* ARM resource types and names are case-insensitive. *)
+let same_resource a b =
+  let key id =
+    ( String.lowercase_ascii (Resource_id.type_name id),
+      String.lowercase_ascii (Resource_id.name id) )
+  in
+  key a = key b
+
 let rec first_duplicate = function
   | [] -> None
-  | id :: rest when List.exists (Resource_id.equal id) rest -> Some id
+  | id :: rest when List.exists (same_resource id) rest -> Some id
   | _ :: rest -> first_duplicate rest
 
 let build transformers =
