@@ -17,6 +17,22 @@ Builders validate their input, so `build` returns a `result` (e.g. storage accou
 
 Dependencies and parameters are worked out from the expressions resources use: a web app whose settings use a storage account's connection string gets that account in its `dependsOn`, and `Web_app.add_secret_setting "DB_PASSWORD"` adds a `securestring` parameter to the template.
 
+## Resources
+
+| Module | ARM type |
+| --- | --- |
+| `Storage_account` | `Microsoft.Storage/storageAccounts` |
+| `Server_farm` | `Microsoft.Web/serverfarms` |
+| `Web_app` | `Microsoft.Web/sites` |
+| `Cosmos_db` | `Microsoft.DocumentDB/databaseAccounts` (NoSQL), with `sqlDatabases` and `containers` |
+
+```ocaml
+let* orders = Cosmos_db.Container.(build [ name "orders"; partition_key [ "/customerId" ] ]) in
+let* shop = Cosmos_db.Database.(build [ name "shop"; throughput (Autoscale 1000); add_container orders ]) in
+let* cosmos = Cosmos_db.(build [ name "mycosmos"; add_database shop ]) in
+(* Deployment.add_resources (Cosmos_db.to_arm_resources cosmos) *)
+```
+
 ## Deploying
 
 `azf.deploy` deploys a template with the [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az login` first). Parameter values are passed in a temporary parameters file, so secrets stay off the command line:
