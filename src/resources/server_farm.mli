@@ -39,7 +39,7 @@ type config = {
   sku : Sku.t;
   os : Os.t;
   capacity : int;
-  location : Azf.Arm_expression.t;
+  location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -69,7 +69,7 @@ val os : Os.t -> config -> config
 val capacity : int -> config -> config
 (** Number of workers. *)
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config
