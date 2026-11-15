@@ -116,7 +116,7 @@ type config = {
   capacity_mode : Capacity_mode.t;
   free_tier : bool;
   databases : Database.t list;
-  location : Azf.Arm_expression.t;
+  location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -151,7 +151,7 @@ val free_tier : bool -> config -> config
 (** One free-tier account is allowed per subscription. *)
 
 val add_database : Database.t -> config -> config
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config
