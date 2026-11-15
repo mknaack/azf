@@ -33,7 +33,7 @@ let%expect_test "linux premium with tags and dependency" =
           sku P1v3;
           os Linux;
           capacity 3;
-          location (String "westeurope");
+          location West_europe;
           add_tag "env" "prod";
           depends_on other;
         ]);

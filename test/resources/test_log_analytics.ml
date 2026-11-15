@@ -28,7 +28,7 @@ let%expect_test "all settings" =
           name "my-logs";
           retention_days 90;
           daily_cap_gb 0.5;
-          location (String "westeurope");
+          location West_europe;
           add_tag "team" "core";
         ]);
   [%expect

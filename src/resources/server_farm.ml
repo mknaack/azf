@@ -54,7 +54,7 @@ type config = {
   sku : Sku.t;
   os : Os.t;
   capacity : int;
-  location : Arm_expression.t;
+  location : Location.t;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
@@ -70,7 +70,7 @@ let default =
     sku = Sku.F1;
     os = Os.Windows;
     capacity = 1;
-    location = Arm_expression.resource_group_location;
+    location = Resource_group;
     tags = [];
     depends_on = [];
   }
@@ -112,7 +112,7 @@ let to_arm_resource { farm_name; config = c } : Arm_resource.t =
     type_name;
     api_version;
     name = farm_name;
-    location = Some c.location;
+    location = Some (Location.to_expression c.location);
     tags = c.tags;
     sku =
       Some
@@ -120,7 +120,7 @@ let to_arm_resource { farm_name; config = c } : Arm_resource.t =
            (Sku.to_string c.sku));
     kind = Some (match c.os with Os.Windows -> "app" | Os.Linux -> "linux");
     depends_on = c.depends_on;
-    references = Arm_expression.resource_ids c.location;
-    parameters = Arm_expression.parameters c.location;
+    references = Arm_expression.resource_ids (Location.to_expression c.location);
+    parameters = Arm_expression.parameters (Location.to_expression c.location);
     properties = yojson_of_properties { reserved = c.os = Os.Linux };
   }

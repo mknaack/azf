@@ -11,7 +11,7 @@ type config = {
   name : string option;
   retention_days : int;
   daily_cap_gb : float option;
-  location : Azf.Arm_expression.t;
+  location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -41,7 +41,7 @@ val retention_days : int -> config -> config
 val daily_cap_gb : float -> config -> config
 (** Stops ingestion for the day once this many GB have been ingested. *)
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

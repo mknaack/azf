@@ -6,7 +6,7 @@ type config = {
   workspace : Log_analytics.t option;
   sampling_percentage : float option;
   disable_ip_masking : bool;
-  location : Arm_expression.t;
+  location : Location.t;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
@@ -26,7 +26,7 @@ let default =
     workspace = None;
     sampling_percentage = None;
     disable_ip_masking = false;
-    location = Arm_expression.resource_group_location;
+    location = Resource_group;
     tags = [];
     depends_on = [];
   }
@@ -95,12 +95,12 @@ let to_arm_resource { component_name; workspace; config = c } : Arm_resource.t =
   let workspace_id =
     Arm_expression.Resource_id (Log_analytics.resource_id workspace)
   in
-  let expressions = [ c.location; workspace_id ] in
+  let expressions = [ Location.to_expression c.location; workspace_id ] in
   {
     type_name;
     api_version;
     name = component_name;
-    location = Some c.location;
+    location = Some (Location.to_expression c.location);
     tags = c.tags;
     sku = None;
     kind = Some "web";

@@ -17,7 +17,7 @@ type config = {
   workspace : Log_analytics.t option;
   sampling_percentage : float option;
   disable_ip_masking : bool;
-  location : Azf.Arm_expression.t;
+  location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -51,7 +51,7 @@ val sampling_percentage : float -> config -> config
 val disable_ip_masking : bool -> config -> config
 (** Stores client IP addresses instead of masking them. *)
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

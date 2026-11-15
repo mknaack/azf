@@ -41,7 +41,7 @@ let%expect_test "all settings" =
           kind Block_blob_storage;
           access_tier Cool;
           https_only false;
-          location (String "westeurope");
+          location West_europe;
           add_tag "env" "dev";
           add_tags [ ("team", "core") ];
           depends_on other;

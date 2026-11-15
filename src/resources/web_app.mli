@@ -36,7 +36,7 @@ type config = {
   always_on : bool;
   runtime : Runtime.t option;
   app_settings : (string * Azf.Arm_expression.t) list;
-  location : Azf.Arm_expression.t;
+  location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -85,7 +85,7 @@ val app_insights : App_insights.t -> config -> config
 (** Sets [APPLICATIONINSIGHTS_CONNECTION_STRING] to the resource's
     {!App_insights.connection_string}, so the app sends telemetry to it. *)
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config
