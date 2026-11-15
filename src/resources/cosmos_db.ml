@@ -106,11 +106,13 @@ module Container = struct
     name : string option;
     partition_key : string list;
     default_ttl : int option;
+    throughput : Throughput.t option;
   }
 
   type t = { container_name : string; config : config }
 
-  let default = { name = None; partition_key = []; default_ttl = None }
+  let default =
+    { name = None; partition_key = []; default_ttl = None; throughput = None }
 
   let validate_partition_key name paths =
     let valid_path p = String.length p > 1 && p.[0] = '/' in
@@ -136,11 +138,17 @@ module Container = struct
     in
     let* () = validate_partition_key container_name config.partition_key in
     let* () = validate_ttl config.default_ttl in
+    let* () =
+      Option.fold ~none:(Ok ()) ~some:Throughput.validate config.throughput
+    in
     Ok { container_name; config }
 
   let name name c = { c with name = Some name }
   let partition_key paths c = { c with partition_key = paths }
   let default_ttl seconds c = { c with default_ttl = Some seconds }
+
+  let throughput throughput (c : config) =
+    { c with throughput = Some throughput }
 end
 
 module Database = struct
@@ -222,14 +230,22 @@ let validate_name name =
   then Ok name
   else error (Invalid_name name)
 
+let provisioned_names (db : Database.t) =
+  let containers =
+    List.filter_map
+      (fun (c : Container.t) ->
+        Option.map
+          (fun _ -> db.database_name ^ "/" ^ c.container_name)
+          c.config.throughput)
+      db.config.containers
+  in
+  Option.fold ~none:containers
+    ~some:(fun _ -> db.database_name :: containers)
+    db.config.throughput
+
 let check_serverless (c : config) =
-  match
-    List.find_opt
-      (fun (db : Database.t) -> Option.is_some db.config.throughput)
-      c.databases
-  with
-  | Some db when c.capacity_mode = Serverless ->
-      error (Throughput_on_serverless db.database_name)
+  match (c.capacity_mode, List.concat_map provisioned_names c.databases) with
+  | Serverless, name :: _ -> error (Throughput_on_serverless name)
   | _ -> Ok ()
 
 let build transformers =
@@ -308,7 +324,10 @@ type container_resource = {
 }
 [@@deriving yojson_of]
 
-type container_properties = { resource : container_resource }
+type container_properties = {
+  resource : container_resource;
+  options : Throughput.options option; [@yojson.option]
+}
 [@@deriving yojson_of]
 
 let child ~type_name ~name ~parent properties : Arm_resource.t =
@@ -346,6 +365,7 @@ let container_resource ~database_id ~database_path (container : Container.t) =
                };
              default_ttl = c.default_ttl;
            };
+         options = Option.map Throughput.options c.throughput;
        })
 
 let database_resources ~account_id ~account_name (db : Database.t) =
