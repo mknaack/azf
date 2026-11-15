@@ -31,7 +31,7 @@ type t = {
 type template_resource = {
   type_name : string; [@key "type"]
   api_version : string; [@key "apiVersion"]
-  name : string;
+  name : Arm_expression.t;
   location : Arm_expression.t option; [@yojson.option]
   tags : tags; [@yojson_drop_if is_empty]
   sku : Sku.t option; [@yojson.option]
@@ -46,7 +46,7 @@ let yojson_of_t (t : t) =
     {
       type_name = t.type_name;
       api_version = t.api_version;
-      name = t.name;
+      name = String t.name;
       location = t.location;
       tags = t.tags;
       sku = t.sku;
