@@ -54,7 +54,7 @@ type config = {
   sku : Sku.t;
   os : Os.t;
   capacity : int;
-  location : Arm_expression.t option;
+  location : Location.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
@@ -100,7 +100,9 @@ let is_linux t = (Resource.state t).config.os = Os.Linux
 type properties = { reserved : bool } [@@deriving yojson_of]
 
 let arm_resource { farm_name; config = c } ~location : Arm_resource.t =
-  let location = Option.value c.location ~default:location in
+  let location =
+    Option.fold ~none:location ~some:Location.to_expression c.location
+  in
   {
     type_name;
     api_version;

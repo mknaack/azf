@@ -43,7 +43,7 @@ type config = {
   kind : Kind.t;
   access_tier : Access_tier.t;
   https_only : bool;
-  location : Azf.Arm_expression.t option;
+  location : Azf.Location.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -73,7 +73,7 @@ val kind : Kind.t -> config -> config
 val access_tier : Access_tier.t -> config -> config
 val https_only : bool -> config -> config
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 (** Without it, the resource goes in the {!Arm.location} of its deployment, or
     else the resource group's location. *)
 

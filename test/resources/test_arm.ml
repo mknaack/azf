@@ -10,8 +10,7 @@ let print_result = function
 let%expect_test "location applies to resources without their own" =
   print_result
     (let* storage =
-       Storage_account.(
-         build [ name "mystorage"; location (String "westeurope") ])
+       Storage_account.(build [ name "mystorage"; location West_europe ])
      in
      let* plan = Server_farm.(build [ name "myplan" ]) in
      let* app = Web_app.(build [ name "myapp"; service_plan plan ]) in
@@ -180,9 +179,7 @@ let%expect_test "a web app without a plan brings its own" =
 
 let%expect_test "the created plan follows the app's location" =
   print_result
-    (let* app =
-       Web_app.(build [ name "myapp"; location (String "westeurope") ])
-     in
+    (let* app = Web_app.(build [ name "myapp"; location West_europe ]) in
      Arm.(build [ location North_europe; add_resource app ]));
   [%expect
     {|

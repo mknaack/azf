@@ -39,7 +39,7 @@ type config = {
   sku : Sku.t;
   os : Os.t;
   capacity : int;
-  location : Azf.Arm_expression.t option;
+  location : Azf.Location.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -70,7 +70,7 @@ val os : Os.t -> config -> config
 val capacity : int -> config -> config
 (** Number of workers. *)
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 (** Without it, the resource goes in the {!Arm.location} of its deployment, or
     else the resource group's location. *)
 
