@@ -119,12 +119,17 @@ let spawn az args ~stdout ~stderr =
       | exception Unix.Unix_error ((ENOENT | EACCES), _, _) ->
           Error (Error.Az_not_found az))
 
+let rec wait pid =
+  match Unix.waitpid [] pid with
+  | _, status -> status
+  | exception Unix.Unix_error (EINTR, _, _) -> wait pid
+
 (* Output goes to files rather than pipes, so a chatty az cannot block. *)
 let run az args =
   with_temp_file ".out" @@ fun stdout ->
   with_temp_file ".err" @@ fun stderr ->
   let* pid = spawn az args ~stdout ~stderr in
-  match snd (Unix.waitpid [] pid) with
+  match wait pid with
   | WEXITED 0 -> Ok (read_file stdout)
   | WEXITED 127 -> Error (Error.Az_not_found az)
   | WEXITED exit_code | WSIGNALED exit_code | WSTOPPED exit_code ->
