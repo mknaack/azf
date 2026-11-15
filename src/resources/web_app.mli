@@ -52,7 +52,7 @@ val api_version : string
 
 val default : config
 (** No name, service plan or runtime, HTTPS only, [always_on] off (the [F1] tier
-    does not support it), no app settings, no location (see {!val-location}) . *)
+    does not support it), no app settings, no location (see {!val-location}). *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 2–60 characters, letters, digits and hyphens, not starting or

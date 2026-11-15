@@ -54,7 +54,7 @@ val type_name : string
 val api_version : string
 
 val default : config
-(** No name, [F1], [Windows], one worker, no location (see {!val-location}) . *)
+(** No name, [F1], [Windows], one worker, no location (see {!val-location}). *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 1–60 characters, letters, digits and hyphens. *)

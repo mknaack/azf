@@ -59,7 +59,7 @@ val api_version : string
 
 val default : config
 (** No name, [Standard_LRS], [Storage_v2], [Hot], HTTPS only, no location (see
-    {!val-location}) . *)
+    {!val-location}). *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 3–24 characters, lowercase letters and digits only. *)
