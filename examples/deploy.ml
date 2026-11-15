@@ -6,20 +6,12 @@ open Azf_resources
 let ( let* ) = Result.bind
 
 let deployment =
-  let* plan = Server_farm.(build [ name "azf-deploy-plan" ]) in
   let* app =
-    Web_app.(
-      build
-        [
-          name "azf-deploy-app";
-          service_plan plan;
-          add_secret_setting "DB_PASSWORD";
-        ])
+    Web_app.(build [ name "azf-deploy-app"; add_secret_setting "DB_PASSWORD" ])
   in
   Arm.(
     build
       [
-        add_resource plan;
         add_resource app;
         add_output (Output.string "hostName" (Web_app.default_host_name app));
       ])

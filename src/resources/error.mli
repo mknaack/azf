@@ -22,7 +22,6 @@ module Web_app : sig
   type t =
     | Missing_name
     | Invalid_name of string
-    | Missing_service_plan
     | Python_requires_linux of string
         (** A Python runtime (with this version) on a Windows plan. *)
 
