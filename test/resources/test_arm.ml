@@ -168,3 +168,24 @@ let%expect_test "quick_write writes name.json" =
       "outputs": {}
     }
     |}]
+
+let%expect_test "name expressions only match the same expression" =
+  let check names =
+    let result =
+      let* storage = Storage_account.(build [ name "mystorage" ]) in
+      let raw name : Arm_resource.t =
+        { (Storage_account.to_arm_resource storage) with name }
+      in
+      Arm.(build (List.map (fun n -> add_arm_resource (raw n)) names))
+    in
+    match result with
+    | Ok _ -> print_endline "ok"
+    | Error e -> print_endline (Error.to_string e)
+  in
+  check [ "[base64('a')]"; "[base64('A')]" ];
+  check [ "[base64('a')]"; "[base64('a')]" ];
+  [%expect
+    {|
+    ok
+    Resource Microsoft.Storage/storageAccounts "[base64('a')]" is added more than once
+    |}]
