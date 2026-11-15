@@ -7,7 +7,7 @@ open Azf
 open Azf_resources
 
 let template =
-  Storage_account.(build [ name "mystorage"; sku Standard_GRS; add_tag "env" "dev" ])
+  Storage_account.(build [ name "mystorage"; sku Standard_GRS; location West_europe; add_tag "env" "dev" ])
   |> Result.map (fun storage ->
          Deployment.(build [ add_resource (Storage_account.to_arm_resource storage) ])
          |> Deployment.to_string)
