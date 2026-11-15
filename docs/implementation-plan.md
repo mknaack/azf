@@ -8,7 +8,7 @@ Replicate Farmer's three layers:
 
 - **Resource builders** — F# computation expressions like `webApp { name "x"; sku S1 }` that collect config into a record. In OCaml, use transformer functions: each builder takes a list of `config -> config` functions, e.g. `Web_app.build [ name "myapp"; sku S1 ]`.
 - **Resource interface** — each builder emits one or more `Arm_resource.t` values (type name + JSON body + dependencies).
-- **Deployment builder** — aggregates resources, parameters, outputs, and serializes to an ARM template JSON (`$schema`, `resources[]`, `parameters`, `outputs`). `Azf.Deployment` takes raw `Arm_resource.t`s; `Azf_resources.Arm` is Farmer's `arm { ... }`: `Arm.(build [ location North_europe; add_resource plan; add_resource app ])` takes any builder's result (every builder's `t` is a `'state Resource.t`), gives resources without their own location the deployment's (`Azf.Location.t`), rejects duplicate resources, and `Arm.quick_write "name"` writes `name.json` like Farmer's `Writer.quickWrite`.
+- **Deployment builder** — aggregates resources, parameters, outputs, and serializes to an ARM template JSON (`$schema`, `resources[]`, `parameters`, `outputs`). `Azf.Deployment` takes raw `Arm_resource.t`s; `Azf_resources.Arm` is Farmer's `arm { ... }`: `Arm.(build [ location North_europe; add_resource app ])` takes any builder's result (every builder's `t` is a `'state Resource.t`), gives resources without their own location the deployment's (`Azf.Location.t`), rejects duplicate resources, and `Arm.quick_write "name"` writes `name.json` like Farmer's `Writer.quickWrite`.
 
 ## 2. Project skeleton
 

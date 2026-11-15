@@ -28,7 +28,6 @@ module Web_app = struct
   type t =
     | Missing_name
     | Invalid_name of string
-    | Missing_service_plan
     | Python_requires_linux of string
 
   let to_string = function
@@ -38,7 +37,6 @@ module Web_app = struct
           "Invalid web app name %S: must be 2-60 characters, letters, digits \
            and hyphens only, not starting or ending with a hyphen"
           name
-    | Missing_service_plan -> "Web app service plan is required"
     | Python_requires_linux version ->
         Printf.sprintf "Python %s requires a Linux service plan" version
 end

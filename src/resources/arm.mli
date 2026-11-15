@@ -3,10 +3,8 @@
 
     {[
       let deployment =
-        let* plan = Server_farm.(build [ name "myplan" ]) in
-        let* app = Web_app.(build [ name "myapp"; service_plan plan ]) in
-        Arm.(
-          build [ location North_europe; add_resource plan; add_resource app ])
+        let* app = Web_app.(build [ name "myapp" ]) in
+        Arm.(build [ location North_europe; add_resource app ])
 
       let () = Arm.quick_write "template" deployment
     ]} *)

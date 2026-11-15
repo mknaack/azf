@@ -99,7 +99,7 @@ let%expect_test "validation" =
     Invalid web app name "myapp-": must be 2-60 characters, letters, digits and hyphens only, not starting or ending with a hyphen
     Invalid web app name "my.app": must be 2-60 characters, letters, digits and hyphens only, not starting or ending with a hyphen
     Invalid web app name "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": must be 2-60 characters, letters, digits and hyphens only, not starting or ending with a hyphen
-    Web app service plan is required
+    ok myapp
     ok My-App-01
     |}]
 
@@ -221,9 +221,10 @@ let%expect_test "deployment infers dependsOn within the deployment" =
     |}]
 
 let%expect_test "runtime" =
-  let build os set_runtime =
+  let build plan_os set_runtime =
     print_result
-      Web_app.(build [ name "myapp"; service_plan (plan ~os ()); set_runtime ])
+      Web_app.(
+        build [ name "myapp"; service_plan (plan ~os:plan_os ()); set_runtime ])
   in
   build Linux (Web_app.runtime (Dotnet "8.0"));
   build Windows (Web_app.runtime (Java "17"));

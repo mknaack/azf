@@ -8,14 +8,13 @@ open Azf_resources
 let ( let* ) = Result.bind
 
 let deployment =
-  let* plan = Server_farm.(build [ name "yourFirstAzfApp-farm" ]) in
-  let* app = Web_app.(build [ name "yourFirstAzfApp"; service_plan plan ]) in
-  Arm.(build [ location North_europe; add_resource plan; add_resource app ])
+  let* app = Web_app.(build [ name "yourFirstAzfApp" ]) in
+  Arm.(build [ location North_europe; add_resource app ])
 
 let () = Arm.quick_write "myFirstTemplate" deployment
 ```
 
-Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits). All builders share `Azf_resources.Error.t`, so they combine with `let*`. `Arm.build` collects the built resources into a `Deployment.t` (rejecting duplicates), and its `location` applies to every resource built without its own. `Arm.quick_write` writes `myFirstTemplate.json`, printing the error and exiting on failure; use `Deployment.to_string` or `Deployment.write_file` to handle errors yourself.
+Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits). All builders share `Azf_resources.Error.t`, so they combine with `let*`. A web app without a `service_plan` gets its own `<name>-farm` plan (`F1`, Windows, or set `Web_app.sku` / `Web_app.os`), which `Arm.add_resource` adds with it. `Arm.build` collects the built resources into a `Deployment.t` (rejecting duplicates), and its `location` applies to every resource built without its own. `Arm.quick_write` writes `myFirstTemplate.json`, printing the error and exiting on failure; use `Deployment.to_string` or `Deployment.write_file` to handle errors yourself.
 
 Dependencies and parameters are worked out from the expressions resources use: a web app whose settings use a storage account's connection string gets that account in its `dependsOn`, and `Web_app.add_secret_setting "DB_PASSWORD"` adds a `securestring` parameter to the template.
 

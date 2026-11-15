@@ -20,6 +20,8 @@ end
 type config = {
   name : string option;
   service_plan : Server_farm.t option;
+  plan_sku : Server_farm.Sku.t;
+  plan_os : Server_farm.Os.t;
   https_only : bool;
   always_on : bool;
   runtime : Runtime.t option;
@@ -29,7 +31,13 @@ type config = {
   depends_on : Resource_id.t list;
 }
 
-type state = { app_name : string; plan : Server_farm.t; config : config }
+type state = {
+  app_name : string;
+  plan : Server_farm.t;
+  own_plan : bool;
+  config : config;
+}
+
 type t = state Resource.t
 
 let type_name = "Microsoft.Web/sites"
@@ -39,6 +47,8 @@ let default =
   {
     name = None;
     service_plan = None;
+    plan_sku = Server_farm.Sku.F1;
+    plan_os = Server_farm.Os.Windows;
     https_only = true;
     always_on = false;
     runtime = None;
@@ -71,6 +81,8 @@ let check_runtime plan = function
 
 let name name c = { c with name = Some name }
 let service_plan plan c = { c with service_plan = Some plan }
+let sku plan_sku c = { c with plan_sku }
+let os plan_os c = { c with plan_os }
 let https_only https_only c = { c with https_only }
 let always_on always_on c = { c with always_on }
 let runtime runtime c = { c with runtime = Some runtime }
@@ -154,7 +166,7 @@ let site_config ~linux ~always_on ~app_settings runtime =
       }
   | Some (Runtime.Python _) -> none
 
-let arm_resource { app_name; plan; config = c } ~location : Arm_resource.t =
+let arm_resource { app_name; plan; config = c; _ } ~location : Arm_resource.t =
   let location =
     Option.fold ~none:location ~some:Location.to_expression c.location
   in
@@ -188,18 +200,34 @@ let arm_resource { app_name; plan; config = c } ~location : Arm_resource.t =
         };
   }
 
-let emit state ~location = [ arm_resource state ~location ]
+let emit state ~location =
+  let plan =
+    if state.own_plan then Resource.to_arm_resources ~location state.plan
+    else []
+  in
+  plan @ [ arm_resource state ~location ]
+
+let default_plan app_name c =
+  Server_farm.build
+    ([
+       Server_farm.name (app_name ^ "-farm");
+       Server_farm.sku c.plan_sku;
+       Server_farm.os c.plan_os;
+     ]
+    @ Option.to_list (Option.map Server_farm.location c.location))
 
 let build transformers =
   let config = List.fold_left (fun c f -> f c) default transformers in
   let* name = Option.to_result ~none:(Error.Web_app Missing_name) config.name in
   let* app_name = validate_name name in
-  let* plan =
-    Option.to_result ~none:(Error.Web_app Missing_service_plan)
-      config.service_plan
+  let* plan, own_plan =
+    match config.service_plan with
+    | Some plan -> Ok (plan, false)
+    | None ->
+        Result.map (fun plan -> (plan, true)) (default_plan app_name config)
   in
   let* () = check_runtime plan config.runtime in
-  let state = { app_name; plan; config } in
+  let state = { app_name; plan; own_plan; config } in
   Ok (Resource.make state (emit state))
 
 let to_arm_resource t =
