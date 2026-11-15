@@ -24,7 +24,7 @@ type config = {
   always_on : bool;
   runtime : Runtime.t option;
   app_settings : (string * Arm_expression.t) list;
-  location : Arm_expression.t;
+  location : Location.t;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
@@ -42,7 +42,7 @@ let default =
     always_on = false;
     runtime = None;
     app_settings = [];
-    location = Arm_expression.resource_group_location;
+    location = Resource_group;
     tags = [];
     depends_on = [];
   }
@@ -167,13 +167,15 @@ let site_config ~linux ~always_on ~app_settings runtime =
 let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
   let plan_id = Server_farm.resource_id plan in
   let expressions =
-    c.location :: Resource_id plan_id :: List.map snd c.app_settings
+    Location.to_expression c.location
+    :: Resource_id plan_id
+    :: List.map snd c.app_settings
   in
   {
     type_name;
     api_version;
     name = app_name;
-    location = Some c.location;
+    location = Some (Location.to_expression c.location);
     tags = c.tags;
     sku = None;
     kind = Some (if Server_farm.is_linux plan then "app,linux" else "app");

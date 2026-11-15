@@ -36,7 +36,7 @@ type config = {
   always_on : bool;
   runtime : Runtime.t option;
   app_settings : (string * Azf.Arm_expression.t) list;
-  location : Azf.Arm_expression.t;
+  location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
@@ -81,7 +81,7 @@ val add_secret_setting : string -> config -> config
     parameter with the same name, so the value is supplied at deployment time
     instead of being stored in the template. *)
 
-val location : Azf.Arm_expression.t -> config -> config
+val location : Azf.Location.t -> config -> config
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config
