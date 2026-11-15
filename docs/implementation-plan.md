@@ -38,7 +38,9 @@ azf/
 │   │   ├── dune
 │   │   ├── storage_account.ml(i)
 │   │   ├── server_farm.ml(i)
-│   │   └── web_app.ml(i)
+│   │   ├── web_app.ml(i)
+│   │   ├── log_analytics.ml(i)
+│   │   └── app_insights.ml(i)
 │   └── deploy/                 # library `azf.deploy` (module Azf_deploy)
 │       ├── dune
 │       └── az_cli.ml(i)        # Azf_deploy.Az_cli: validate / what_if / create via the `az` CLI
@@ -71,6 +73,11 @@ Start with 2–3 resources to validate the design:
 
 - `Microsoft.Storage/storageAccounts`
 - `Microsoft.Web/serverfarms` + `Microsoft.Web/sites` (Farmer's canonical example, proves dependencies)
+
+Then broaden coverage (milestone 5):
+
+- `Microsoft.OperationalInsights/workspaces` (`Log_analytics`) + `Microsoft.Insights/components` (`App_insights`). Classic App Insights is retired, so `App_insights` requires a workspace; `Web_app.app_insights ai` sets `APPLICATIONINSIGHTS_CONNECTION_STRING`.
+- `Microsoft.DocumentDB/databaseAccounts` with SQL databases and containers (`Cosmos_db`).
 
 Each resource module: a `config` record with defaults, transformer functions (`name`, `sku`, `add_tags`, `depends_on`), a `to_arm_resource` function, and one submodule per option type (e.g. `Storage_account.Sku`, `Kind`), each with its own `t` and `to_string`. `build` returns `(t, Error.t) result` with one `Azf_resources.Error.t` shared by all builders (a constructor per resource, each wrapping that resource's own errors), so builders combine with `let*`. Use a typed `ResourceId` for cross-resource references so `depends_on` isn't stringly-typed.
 
