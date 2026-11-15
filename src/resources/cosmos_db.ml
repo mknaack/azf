@@ -194,7 +194,7 @@ type config = {
   capacity_mode : Capacity_mode.t;
   free_tier : bool;
   databases : Database.t list;
-  location : Arm_expression.t;
+  location : Location.t;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
@@ -213,7 +213,7 @@ let default =
     capacity_mode = Capacity_mode.Provisioned;
     free_tier = false;
     databases = [];
-    location = Arm_expression.resource_group_location;
+    location = Resource_group;
     tags = [];
     depends_on = [];
   }
@@ -390,13 +390,13 @@ let account_resource { account_name; config = c } : Arm_resource.t =
     type_name;
     api_version;
     name = account_name;
-    location = Some c.location;
+    location = Some (Location.to_expression c.location);
     tags = c.tags;
     sku = None;
     kind = Some "GlobalDocumentDB";
     depends_on = c.depends_on;
-    references = Arm_expression.resource_ids c.location;
-    parameters = Arm_expression.parameters c.location;
+    references = Arm_expression.resource_ids (Location.to_expression c.location);
+    parameters = Arm_expression.parameters (Location.to_expression c.location);
     properties =
       yojson_of_properties
         {
@@ -405,7 +405,7 @@ let account_resource { account_name; config = c } : Arm_resource.t =
           locations =
             [
               {
-                location_name = c.location;
+                location_name = Location.to_expression c.location;
                 failover_priority = 0;
                 is_zone_redundant = false;
               };
