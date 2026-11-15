@@ -2,15 +2,12 @@
 
     {[
       let app =
-        Web_app.(
-          build
-            [
-              name "myapp"; add_setting "ENV" (String "dev");
-            ])
+        Web_app.(build [ name "myapp"; add_setting "ENV" (String "dev") ])
       (* : (Web_app.t, Error.t) result *)
     ]}
 
-    Without {!service_plan}, the app gets its own plan. The server farm and any resources used in app settings are recorded as
+    Without {!val-service_plan}, the app gets its own plan. The server farm and
+    any resources used in app settings are recorded as
     {!Azf.Arm_resource.t.references}, so {!Azf.Deployment.to_string} adds them
     to [dependsOn] when they are in the same deployment. *)
 
@@ -53,8 +50,9 @@ val type_name : string
 val api_version : string
 
 val default : config
-(** No name, runtime or service plan (so an [F1] Windows plan is created), HTTPS only, [always_on] off (the [F1] tier
-    does not support it), no app settings, no location (see {!val-location}). *)
+(** No name, runtime or service plan (so an [F1] Windows plan is created), HTTPS
+    only, [always_on] off (the [F1] tier does not support it), no app settings,
+    no location (see {!val-location}). *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 2–60 characters, letters, digits and hyphens, not starting or
@@ -64,17 +62,20 @@ val build : (config -> config) list -> (t, Error.t) result
 (** Applies the transformers to {!default} in order and validates the result. *)
 
 val name : string -> config -> config
+
 val service_plan : Server_farm.t -> config -> config
 (** Hosts the app on an existing plan. Without it, {!build} creates a plan named
     ["<app name>-farm"] with {!sku} and {!os}, in the app's location, which
     {!Arm.add_resource} adds along with the app. *)
 
 val sku : Server_farm.Sku.t -> config -> config
-(** The created plan's SKU, [F1] by default. Ignored with {!service_plan}. *)
+(** The created plan's SKU, [F1] by default. Ignored with {!val-service_plan}.
+*)
 
 val os : Server_farm.Os.t -> config -> config
-(** The created plan's OS, [Windows] by default. Ignored with {!service_plan}.
-*)
+(** The created plan's OS, [Windows] by default. Ignored with
+    {!val-service_plan}. *)
+
 val https_only : bool -> config -> config
 val always_on : bool -> config -> config
 
