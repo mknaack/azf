@@ -40,7 +40,9 @@ end
 module Capacity_mode : sig
   type t =
     | Provisioned
-    | Serverless  (** Pay per request; databases cannot set {!Throughput.t}. *)
+    | Serverless
+        (** Pay per request; databases and containers cannot set
+            {!Throughput.t}. *)
 end
 
 module Throughput : sig
@@ -58,6 +60,7 @@ module Container : sig
     name : string option;
     partition_key : string list;
     default_ttl : int option;
+    throughput : Throughput.t option;
   }
 
   type t
@@ -79,6 +82,11 @@ module Container : sig
   val default_ttl : int -> config -> config
   (** Seconds until items expire, or [-1] to enable per-item TTL with no
       default. *)
+
+  val throughput : Throughput.t -> config -> config
+  (** Dedicated throughput for this container, in addition to any shared
+      database throughput. Without either, Azure provisions the container with
+      its default dedicated throughput. *)
 end
 
 module Database : sig
@@ -132,8 +140,8 @@ val validate_name : string -> (string, Error.t) result
 
 val build : (config -> config) list -> (t, Error.t) result
 (** Applies the transformers to {!default} in order and validates the result.
-    Database names must be unique, and a serverless account's databases cannot
-    set throughput. *)
+    Database names must be unique, and a serverless account's databases and
+    containers cannot set throughput. *)
 
 val name : string -> config -> config
 val consistency : Consistency.t -> config -> config

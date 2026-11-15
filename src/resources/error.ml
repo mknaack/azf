@@ -88,8 +88,7 @@ module Cosmos_db = struct
         Printf.sprintf "Duplicate Cosmos DB database %S" name
     | Throughput_on_serverless name ->
         Printf.sprintf
-          "Cosmos DB database %S sets throughput, but the account is serverless"
-          name
+          "Cosmos DB %S sets throughput, but the account is serverless" name
     | Missing_database_name -> "Cosmos DB database name is required"
     | Invalid_database_name name -> invalid_id "database" name
     | Invalid_provisioned_throughput ru ->

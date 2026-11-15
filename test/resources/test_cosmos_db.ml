@@ -259,6 +259,47 @@ let%expect_test "deployment orders children with dependsOn" =
     }
     |}]
 
+let%expect_test "dedicated container throughput" =
+  let dedicated =
+    Cosmos_db.Container.(
+      build
+        [ name "hot"; partition_key [ "/id" ]; throughput (Provisioned 1000) ])
+    |> Result.get_ok
+  in
+  let db =
+    Cosmos_db.Database.(build [ name "shop"; add_container dedicated ])
+    |> Result.get_ok
+  in
+  (match Cosmos_db.(build [ name "mycosmos"; add_database db ]) with
+  | Ok cosmos ->
+      print_endline
+        (Arm_resource.to_string
+           (List.nth (Cosmos_db.to_arm_resources cosmos) 2))
+  | Error e -> print_endline (Error.to_string e));
+  print_error
+    Cosmos_db.(
+      build [ name "mycosmos"; capacity_mode Serverless; add_database db ]);
+  print_error
+    Cosmos_db.Container.(
+      build [ name "hot"; partition_key [ "/id" ]; throughput (Autoscale 1500) ]);
+  [%expect
+    {|
+    {
+      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+      "apiVersion": "2025-04-15",
+      "name": "mycosmos/shop/hot",
+      "properties": {
+        "resource": {
+          "id": "hot",
+          "partitionKey": { "paths": [ "/id" ], "kind": "Hash", "version": 2 }
+        },
+        "options": { "throughput": 1000 }
+      }
+    }
+    Cosmos DB "shop/hot" sets throughput, but the account is serverless
+    Invalid Cosmos DB autoscale max throughput 1500 RU/s: must be at least 1000 and a multiple of 1000
+    |}]
+
 let%expect_test "account errors" =
   let shop = Cosmos_db.Database.(build [ name "shop" ]) |> Result.get_ok in
   let provisioned =
@@ -285,7 +326,7 @@ let%expect_test "account errors" =
     {|
     Cosmos DB account name is required
     Duplicate Cosmos DB database "shop"
-    Cosmos DB database "paid" sets throughput, but the account is serverless
+    Cosmos DB "paid" sets throughput, but the account is serverless
     Invalid Cosmos DB bounded staleness (prefix 5, interval 5s): the prefix must be at least 10 and the interval 5-86400 seconds
     |}]
 
