@@ -29,13 +29,18 @@ let is_alphanumeric = function
   | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> true
   | _ -> false
 
+let length_is_ok name = String.length name >= 4 && String.length name <= 63
+
+let has_only_valid_chars name =
+  String.for_all (fun ch -> is_alphanumeric ch || ch = '-') name
+
+let starts_and_ends_alphanumeric name =
+  is_alphanumeric name.[0] && is_alphanumeric name.[String.length name - 1]
+
 let validate_name name =
-  let length = String.length name in
   if
-    length >= 4 && length <= 63
-    && String.for_all (fun ch -> is_alphanumeric ch || ch = '-') name
-    && is_alphanumeric name.[0]
-    && is_alphanumeric name.[length - 1]
+    length_is_ok name && has_only_valid_chars name
+    && starts_and_ends_alphanumeric name
   then Ok name
   else Error (Error.Log_analytics (Invalid_name name))
 
