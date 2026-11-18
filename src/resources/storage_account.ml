@@ -104,27 +104,34 @@ let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
 let resource_id t = Resource_id.make ~type_name t.account_name
 
-let primary_endpoint t endpoint =
-  Arm_expression.Property
-    (Reference (resource_id t), "primaryEndpoints." ^ endpoint)
+let primary_endpoint t endpoint : string Arm_expression.t =
+  Property (Reference (resource_id t), "primaryEndpoints." ^ endpoint)
 
 let blob_endpoint t = primary_endpoint t "blob"
 let web_endpoint t = primary_endpoint t "web"
 
-let connection_string t =
-  let keys =
-    Arm_expression.Call
-      ("listKeys", [ Resource_id (resource_id t); String api_version ])
+let connection_string t : Arm_type.secure_string Arm_expression.t =
+  let keys : Arm_type.object_ Arm_expression.t =
+    Call
+      ( "listKeys",
+        [ Any (Resource_id (resource_id t)); Any (String api_version) ] )
   in
-  Arm_expression.Concat
-    [
-      String "DefaultEndpointsProtocol=https;AccountName=";
-      String t.account_name;
-      String ";AccountKey=";
-      Property (keys, "keys[0].value");
-      String ";EndpointSuffix=";
-      Property (Call ("environment", []), "suffixes.storage");
-    ]
+  let key : Arm_type.secure_string Arm_expression.t =
+    Property (keys, "keys[0].value")
+  in
+  let suffix : string Arm_expression.t =
+    Property (Call ("environment", []), "suffixes.storage")
+  in
+  Call
+    ( "concat",
+      [
+        Any (String "DefaultEndpointsProtocol=https;AccountName=");
+        Any (String t.account_name);
+        Any (String ";AccountKey=");
+        Any key;
+        Any (String ";EndpointSuffix=");
+        Any suffix;
+      ] )
 
 type properties = {
   access_tier : Access_tier.t; [@key "accessTier"]

@@ -17,6 +17,8 @@ Builders validate their input, so `build` returns a `result` (e.g. storage accou
 
 Dependencies and parameters are worked out from the expressions resources use: a web app whose settings use a storage account's connection string gets that account in its `dependsOn`, and `Web_app.add_secret_setting "DB_PASSWORD"` adds a `securestring` parameter to the template.
 
+Expressions are typed by the ARM value they produce (`string Arm_expression.t`, `int Arm_expression.t`, `Arm_type.secure_string Arm_expression.t`, ...). Secrets such as `Storage_account.connection_string` are `secure_string`s: they go into app settings with `Web_app.add_secure_setting`, and the compiler rejects them as template outputs.
+
 ## Deploying
 
 `azf.deploy` deploys a template with the [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az login` first). Parameter values are passed in a temporary parameters file, so secrets stay off the command line:

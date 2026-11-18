@@ -66,6 +66,8 @@ azf/
 - `Location.t` — `Resource_group` (the default), one constructor per Azure region (`West_europe`, …), `Region "…"` for any other region and `Parameter p`. Resource builders take `location : Location.t`.
 - `Deployment.to_string : Deployment.t -> string` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
 - `Arm_expression` AST for ARM template functions (`resourceId`, `concat`, `reference`, `parameters`, `variables`) that serializes to `"[resourceId('Microsoft.Web/sites', name)]"` strings.
+  - `'a Arm_expression.t` is a GADT indexed by the ARM value type: `string`, `int`, `bool`, or `Arm_type.secure_string` / `array_` / `object_` / `secure_object`. Literals, `Parameter`, `Concat`, `Resource_id` and `Reference` have fixed types; `Variables`, `Property` and `Call` are escape hatches whose type the caller (usually a resource helper) states. `Call` takes `Arm_expression.any` arguments.
+  - Outputs take typed expressions (`Output.int` an `int t`, ...) and have no secure variant, so secrets such as `Storage_account.connection_string` (a `secure_string t`) cannot be written to the deployment history. `Web_app.add_setting` takes a `string t`, `add_secure_setting` a `secure_string t`.
 
 ## 4. Resources (incremental)
 
@@ -79,7 +81,7 @@ Each resource module: a `config` record with defaults, transformer functions (`n
 ## 5. Parameters, outputs, secrets
 
 - `parameter` support: values hoisted into the template's `parameters` block, with `secureString` for secrets (Farmer's `SecureParameter`).
-  - `Arm_expression.Parameter of Parameter.t` carries the whole definition, so any parameter a resource or output uses is added to the template automatically (resources record them in `Arm_resource.parameters`, like `references`). `Deployment.add_parameter` is only for unused ones; on a name clash the first wins.
+  - `Arm_expression.Parameter : 'a Parameter.t -> 'a t` carries the whole definition, so any parameter a resource or output uses is added to the template automatically (resources record them in `Arm_resource.parameters`, like `references`). `Deployment.add_parameter` is only for unused ones; on a name clash the first wins.
   - Types `string`, `securestring`, `int`, `bool`, `array`, `object`, `secureObject`; options `~default`, `~allowed`, `~description`, `~min_value`/`~max_value`, `~min_length`/`~max_length`. Defaults are literal `Parameter.Value.t`s.
   - Resource helpers such as `Web_app.add_secret_setting "DB_PASSWORD"` create a secure parameter for the value.
 - `output` values referencing `reference()` expressions, typed `string`/`int`/`bool`/`array`/`object`. Resources expose expressions worth outputting, e.g. `Web_app.default_host_name`, `Storage_account.blob_endpoint`.

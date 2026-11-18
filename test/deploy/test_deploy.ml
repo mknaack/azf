@@ -30,11 +30,7 @@ exit %d
 
 let deployment =
   Deployment.build
-    [
-      Deployment.add_output
-        (Output.string "secret"
-           (Parameter (Parameter.secure_string "DB_PASSWORD")));
-    ]
+    [ Deployment.add_parameter (Parameter.secure_string "DB_PASSWORD") ]
 
 let print_result to_string = function
   | Ok v -> print_endline ("Ok " ^ to_string v)

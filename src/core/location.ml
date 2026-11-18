@@ -69,9 +69,9 @@ type t =
   | Malaysia_west
   | Denmark_east
   | Region of string
-  | Parameter of Parameter.t
+  | Parameter of string Parameter.t
 
-let to_expression : t -> Arm_expression.t = function
+let to_expression : t -> string Arm_expression.t = function
   | Resource_group -> Arm_expression.resource_group_location
   | East_asia -> String "eastasia"
   | Southeast_asia -> String "southeastasia"

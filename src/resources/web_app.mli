@@ -35,7 +35,7 @@ type config = {
   https_only : bool;
   always_on : bool;
   runtime : Runtime.t option;
-  app_settings : (string * Azf.Arm_expression.t) list;
+  app_settings : (string * Azf.Arm_expression.any) list;
   location : Azf.Location.t;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
@@ -70,11 +70,17 @@ val runtime : Runtime.t -> config -> config
     / [nodeVersion] / [phpVersion] / [javaVersion] on Windows. Python is only
     available on Linux plans. *)
 
-val add_setting : string -> Azf.Arm_expression.t -> config -> config
+val add_setting : string -> string Azf.Arm_expression.t -> config -> config
 (** Adds an app setting; a later setting with the same name replaces an earlier
     one. *)
 
-val add_settings : (string * Azf.Arm_expression.t) list -> config -> config
+val add_settings :
+  (string * string Azf.Arm_expression.t) list -> config -> config
+
+val add_secure_setting :
+  string -> Azf.Arm_type.secure_string Azf.Arm_expression.t -> config -> config
+(** Adds an app setting holding a secret, such as
+    {!Storage_account.connection_string}. *)
 
 val add_secret_setting : string -> config -> config
 (** [add_secret_setting "DB_PASSWORD"] sets the app setting to a [securestring]
@@ -87,7 +93,7 @@ val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config
 val resource_id : t -> Azf.Resource_id.t
 
-val default_host_name : t -> Azf.Arm_expression.t
+val default_host_name : t -> string Azf.Arm_expression.t
 (** [reference(resourceId('Microsoft.Web/sites', 'name')).defaultHostName] *)
 
 val to_arm_resource : t -> Azf.Arm_resource.t

@@ -3,7 +3,7 @@
 
 type t = {
   resources : Arm_resource.t list;
-  parameters : Parameter.t list;
+  parameters : Parameter.any list;
   outputs : Output.t list;
 }
 
@@ -15,7 +15,7 @@ val build : (t -> t) list -> t
 val add_resource : Arm_resource.t -> t -> t
 val add_resources : Arm_resource.t list -> t -> t
 
-val add_parameter : Parameter.t -> t -> t
+val add_parameter : _ Parameter.t -> t -> t
 (** Only needed for parameters no resource or output uses. *)
 
 val add_output : Output.t -> t -> t

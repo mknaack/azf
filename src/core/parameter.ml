@@ -16,16 +16,16 @@ module Value = struct
 end
 
 module Type = struct
-  type t =
-    | String
-    | Secure_string
-    | Int
-    | Bool
-    | Array
-    | Object
-    | Secure_object
+  type _ t =
+    | String : string t
+    | Secure_string : Arm_type.secure_string t
+    | Int : int t
+    | Bool : bool t
+    | Array : Arm_type.array_ t
+    | Object : Arm_type.object_ t
+    | Secure_object : Arm_type.secure_object t
 
-  let to_string = function
+  let to_string : type a. a t -> string = function
     | String -> "string"
     | Secure_string -> "securestring"
     | Int -> "int"
@@ -35,9 +35,9 @@ module Type = struct
     | Secure_object -> "secureObject"
 end
 
-type t = {
+type 'a t = {
   name : string;
-  param_type : Type.t;
+  param_type : 'a Type.t;
   default_value : Value.t option;
   allowed_values : Value.t list;
   description : string option;
@@ -46,6 +46,10 @@ type t = {
   min_length : int option;
   max_length : int option;
 }
+
+type any = Any : _ t -> any
+
+let name (Any p) = p.name
 
 let make ?default_value ?(allowed_values = []) ?description ?min_value
     ?max_value ?min_length ?max_length param_type name =

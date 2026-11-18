@@ -20,7 +20,7 @@ let template =
           service_plan plan;
           always_on true;
           runtime (Dotnet "8.0");
-          add_setting "STORAGE_CONNECTION"
+          add_secure_setting "STORAGE_CONNECTION"
             (Storage_account.connection_string storage);
           add_secret_setting "DB_PASSWORD";
         ])
