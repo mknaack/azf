@@ -12,12 +12,12 @@ let no_duplicates make names =
   match find_duplicate names with None -> Ok () | Some n -> error (make n)
 
 let is_invalid_id_char = function '/' | '\\' | '#' | '?' -> true | _ -> false
+let id_length_is_ok id = String.length id >= 1 && String.length id <= 255
+let has_no_invalid_id_chars id = not (String.exists is_invalid_id_char id)
+let does_not_end_with_space id = not (String.ends_with ~suffix:" " id)
 
 let valid_id id =
-  let length = String.length id in
-  length >= 1 && length <= 255
-  && (not (String.exists is_invalid_id_char id))
-  && not (String.ends_with ~suffix:" " id)
+  id_length_is_ok id && has_no_invalid_id_chars id && does_not_end_with_space id
 
 module Consistency = struct
   type t =
@@ -219,14 +219,16 @@ let default =
   }
 
 let is_name_char = function 'a' .. 'z' | '0' .. '9' | '-' -> true | _ -> false
+let name_length_is_ok name = String.length name >= 3 && String.length name <= 44
+let has_only_name_chars name = String.for_all is_name_char name
+
+let does_not_start_or_end_with_hyphen name =
+  not (String.starts_with ~prefix:"-" name || String.ends_with ~suffix:"-" name)
 
 let validate_name name =
-  let length = String.length name in
   if
-    length >= 3 && length <= 44
-    && String.for_all is_name_char name
-    && name.[0] <> '-'
-    && name.[length - 1] <> '-'
+    name_length_is_ok name && has_only_name_chars name
+    && does_not_start_or_end_with_hyphen name
   then Ok name
   else error (Invalid_name name)
 
