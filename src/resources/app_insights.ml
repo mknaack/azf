@@ -35,13 +35,16 @@ let is_invalid_char = function
   | '%' | '&' | '\\' | '?' | '/' -> true
   | ch -> Char.code ch < 32
 
+let length_is_ok name = String.length name >= 1 && String.length name <= 260
+let has_no_invalid_chars name = not (String.exists is_invalid_char name)
+
+let does_not_end_with_space_or_dot name =
+  not (String.ends_with ~suffix:" " name || String.ends_with ~suffix:"." name)
+
 let validate_name name =
-  let length = String.length name in
   if
-    length >= 1 && length <= 260
-    && (not (String.exists is_invalid_char name))
-    && not
-         (String.ends_with ~suffix:" " name || String.ends_with ~suffix:"." name)
+    length_is_ok name && has_no_invalid_chars name
+    && does_not_end_with_space_or_dot name
   then Ok name
   else Error (Error.App_insights (Invalid_name name))
 
