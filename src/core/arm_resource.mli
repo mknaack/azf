@@ -5,7 +5,7 @@ type t = {
   type_name : string;  (** e.g. ["Microsoft.Storage/storageAccounts"] *)
   api_version : string;
   name : string;
-  location : Arm_expression.t option;
+  location : string Arm_expression.t option;
   tags : (string * string) list;
   sku : Sku.t option;
   kind : string option;
@@ -14,7 +14,7 @@ type t = {
       (** Resources used in this resource's expressions. Not emitted;
           {!Deployment.to_string} adds the ones in the same deployment to
           [dependsOn]. *)
-  parameters : Parameter.t list;
+  parameters : Parameter.any list;
       (** Parameters used in this resource's expressions. Not emitted;
           {!Deployment.to_string} adds them to the template. *)
   properties : Yojson.Safe.t;

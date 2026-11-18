@@ -39,7 +39,8 @@ let%expect_test "linux app with settings" =
           always_on true;
           https_only false;
           add_setting "ENV" (String "dev");
-          add_setting "STORAGE" (Storage_account.connection_string storage);
+          add_secure_setting "STORAGE"
+            (Storage_account.connection_string storage);
           add_setting "ENV" (String "prod");
           add_tag "team" "core";
           depends_on (Storage_account.resource_id storage);
@@ -129,8 +130,8 @@ let%expect_test "deployment infers dependsOn within the deployment" =
       app deployed_plan
         Web_app.
           [
-            add_setting "A" (Storage_account.connection_string storage);
-            add_setting "B" (Storage_account.connection_string storage);
+            add_secure_setting "A" (Storage_account.connection_string storage);
+            add_secure_setting "B" (Storage_account.connection_string storage);
             depends_on (Server_farm.resource_id deployed_plan);
           ];
       Server_farm.to_arm_resource deployed_plan;

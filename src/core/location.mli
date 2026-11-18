@@ -77,8 +77,9 @@ type t =
   | Denmark_east  (** [denmarkeast], Denmark East *)
   | Region of string
       (** Any other region, by name, e.g. [Region "austriaeast"]. *)
-  | Parameter of Parameter.t  (** Chosen when the template is deployed. *)
+  | Parameter of string Parameter.t
+      (** Chosen when the template is deployed. *)
 
-val to_expression : t -> Arm_expression.t
+val to_expression : t -> string Arm_expression.t
 (** The ARM value for the location, e.g. ["westeurope"] or
     [[resourceGroup().location]]. *)

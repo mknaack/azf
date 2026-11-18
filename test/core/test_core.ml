@@ -18,10 +18,16 @@ let%expect_test "expressions" =
   print_expr (Resource_id site);
   print_expr (Property (Reference site, "defaultHostName"));
   print_expr
-    (Concat [ String "https://"; Parameter (Parameter.string "host"); Int 443 ]);
+    (Concat
+       [
+         String "https://";
+         Parameter (Parameter.string "host");
+         Call ("string", [ Any (Int 443) ]);
+       ]);
   print_expr
-    (Call ("uniqueString", [ Property (Call ("resourceGroup", []), "id") ]));
-  print_expr (Call ("if", [ Bool true; String "it's"; Bool false ]));
+    (Call ("uniqueString", [ Any (Property (Call ("resourceGroup", []), "id")) ]));
+  print_expr
+    (Call ("if", [ Any (Bool true); Any (String "it's"); Any (Bool false) ]));
   print_expr Arm_expression.resource_group_location;
   [%expect
     {|
@@ -29,7 +35,7 @@ let%expect_test "expressions" =
     [variables('prefix')]
     [resourceId('Microsoft.Web/sites', 'myapp')]
     [reference(resourceId('Microsoft.Web/sites', 'myapp')).defaultHostName]
-    [concat('https://', parameters('host'), 443)]
+    [concat('https://', parameters('host'), string(443))]
     [uniqueString(resourceGroup().id)]
     [if(true(), 'it''s', false())]
     [resourceGroup().location]
@@ -239,7 +245,7 @@ let%expect_test "parameters used in expressions are added to the template" =
               (Output.string "both"
                  (Concat [ Parameter name; Parameter location ]));
             Deployment.add_output
-              (Output.array "list" (Call ("array", [ Parameter name ])));
+              (Output.array "list" (Call ("array", [ Any (Parameter name) ])));
           ]));
   [%expect
     {|

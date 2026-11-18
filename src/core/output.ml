@@ -9,9 +9,11 @@ module Type = struct
     | Object -> "object"
 end
 
-type t = { name : string; output_type : Type.t; value : Arm_expression.t }
+type t = { name : string; output_type : Type.t; value : Arm_expression.any }
 
-let make output_type name value = { name; output_type; value }
+let make output_type name value =
+  { name; output_type; value = Arm_expression.Any value }
+
 let string = make String
 let int = make Int
 let bool = make Bool

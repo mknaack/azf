@@ -23,7 +23,7 @@ type config = {
   https_only : bool;
   always_on : bool;
   runtime : Runtime.t option;
-  app_settings : (string * Arm_expression.t) list;
+  app_settings : (string * Arm_expression.any) list;
   location : Location.t;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
@@ -85,17 +85,24 @@ let https_only https_only c = { c with https_only }
 let always_on always_on c = { c with always_on }
 let runtime runtime c = { c with runtime = Some runtime }
 
-let add_settings settings c =
+let add_any_settings settings c =
   let replaced (key, _) = List.mem_assoc key settings in
   {
     c with
     app_settings = List.filter (Fun.negate replaced) c.app_settings @ settings;
   }
 
+let add_settings settings =
+  add_any_settings
+    (List.map (fun (key, value) -> (key, Arm_expression.Any value)) settings)
+
 let add_setting key value = add_settings [ (key, value) ]
 
+let add_secure_setting key value =
+  add_any_settings [ (key, Arm_expression.Any value) ]
+
 let add_secret_setting key =
-  add_setting key (Parameter (Parameter.secure_string key))
+  add_secure_setting key (Parameter (Parameter.secure_string key))
 
 let location location c = { c with location }
 let add_tags tags c = { c with tags = c.tags @ tags }
@@ -103,10 +110,10 @@ let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
 let resource_id t = Resource_id.make ~type_name t.app_name
 
-let default_host_name t =
-  Arm_expression.Property (Reference (resource_id t), "defaultHostName")
+let default_host_name t : string Arm_expression.t =
+  Property (Reference (resource_id t), "defaultHostName")
 
-type app_setting = { name : string; value : Arm_expression.t }
+type app_setting = { name : string; value : Arm_expression.any }
 [@@deriving yojson_of]
 
 type site_config = {
@@ -127,7 +134,7 @@ type site_config = {
 [@@deriving yojson_of]
 
 type properties = {
-  server_farm_id : Arm_expression.t; [@key "serverFarmId"]
+  server_farm_id : Arm_expression.any; [@key "serverFarmId"]
   https_only : bool; [@key "httpsOnly"]
   site_config : site_config; [@key "siteConfig"]
 }
@@ -167,10 +174,12 @@ let site_config ~linux ~always_on ~app_settings runtime =
 let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
   let plan_id = Server_farm.resource_id plan in
   let expressions =
-    Location.to_expression c.location
-    :: Resource_id plan_id
+    Arm_expression.Any (Location.to_expression c.location)
+    :: Any (Resource_id plan_id)
     :: List.map snd c.app_settings
   in
+  let resource_ids (Arm_expression.Any e) = Arm_expression.resource_ids e in
+  let parameters (Arm_expression.Any e) = Arm_expression.parameters e in
   {
     type_name;
     api_version;
@@ -180,12 +189,12 @@ let to_arm_resource { app_name; plan; config = c } : Arm_resource.t =
     sku = None;
     kind = Some (if Server_farm.is_linux plan then "app,linux" else "app");
     depends_on = c.depends_on;
-    references = List.concat_map Arm_expression.resource_ids expressions;
-    parameters = List.concat_map Arm_expression.parameters expressions;
+    references = List.concat_map resource_ids expressions;
+    parameters = List.concat_map parameters expressions;
     properties =
       yojson_of_properties
         {
-          server_farm_id = Resource_id plan_id;
+          server_farm_id = Any (Resource_id plan_id);
           https_only = c.https_only;
           site_config =
             site_config

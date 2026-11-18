@@ -15,22 +15,22 @@ module Value : sig
 end
 
 module Type : sig
-  type t =
-    | String
-    | Secure_string
-    | Int
-    | Bool
-    | Array
-    | Object
-    | Secure_object
+  type _ t =
+    | String : string t
+    | Secure_string : Arm_type.secure_string t
+    | Int : int t
+    | Bool : bool t
+    | Array : Arm_type.array_ t
+    | Object : Arm_type.object_ t
+    | Secure_object : Arm_type.secure_object t
 
-  val to_string : t -> string
+  val to_string : _ t -> string
   (** The ARM type, e.g. ["securestring"]. *)
 end
 
-type t = {
+type 'a t = {
   name : string;
-  param_type : Type.t;
+  param_type : 'a Type.t;
   default_value : Value.t option;
   allowed_values : Value.t list;
   description : string option;
@@ -39,6 +39,12 @@ type t = {
   min_length : int option;
   max_length : int option;
 }
+(** A parameter whose values have type ['a], e.g. [string t] or
+    [Arm_type.secure_string t]. *)
+
+type any = Any : _ t -> any  (** A parameter of any type. *)
+
+val name : any -> string
 
 val string :
   ?default:string ->
@@ -47,10 +53,14 @@ val string :
   ?min_length:int ->
   ?max_length:int ->
   string ->
-  t
+  string t
 
 val secure_string :
-  ?description:string -> ?min_length:int -> ?max_length:int -> string -> t
+  ?description:string ->
+  ?min_length:int ->
+  ?max_length:int ->
+  string ->
+  Arm_type.secure_string t
 
 val int :
   ?default:int ->
@@ -59,9 +69,9 @@ val int :
   ?min_value:int ->
   ?max_value:int ->
   string ->
-  t
+  int t
 
-val bool : ?default:bool -> ?description:string -> string -> t
+val bool : ?default:bool -> ?description:string -> string -> bool t
 
 val array :
   ?default:Value.t list ->
@@ -69,9 +79,12 @@ val array :
   ?min_length:int ->
   ?max_length:int ->
   string ->
-  t
+  Arm_type.array_ t
 
 val object_ :
-  ?default:(string * Value.t) list -> ?description:string -> string -> t
+  ?default:(string * Value.t) list ->
+  ?description:string ->
+  string ->
+  Arm_type.object_ t
 
-val secure_object : ?description:string -> string -> t
+val secure_object : ?description:string -> string -> Arm_type.secure_object t

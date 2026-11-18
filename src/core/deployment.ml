@@ -2,7 +2,7 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type t = {
   resources : Arm_resource.t list;
-  parameters : Parameter.t list;
+  parameters : Parameter.any list;
   outputs : Output.t list;
 }
 
@@ -10,7 +10,10 @@ let empty = { resources = []; parameters = []; outputs = [] }
 let build transformers = List.fold_left (fun d f -> f d) empty transformers
 let add_resources rs d = { d with resources = d.resources @ rs }
 let add_resource r = add_resources [ r ]
-let add_parameter p d = { d with parameters = d.parameters @ [ p ] }
+
+let add_parameter p d =
+  { d with parameters = d.parameters @ [ Parameter.Any p ] }
+
 let add_output o d = { d with outputs = d.outputs @ [ o ] }
 
 let schema =
@@ -35,7 +38,7 @@ type parameter = {
 }
 [@@deriving yojson_of]
 
-type output = { type_name : string; [@key "type"] value : Arm_expression.t }
+type output = { type_name : string; [@key "type"] value : Arm_expression.any }
 [@@deriving yojson_of]
 
 type 'a named = (string * 'a) list
@@ -52,7 +55,7 @@ type template = {
 }
 [@@deriving yojson_of]
 
-let to_parameter (p : Parameter.t) =
+let to_parameter (Parameter.Any p) =
   ( p.name,
     {
       type_name = Parameter.Type.to_string p.param_type;
@@ -66,16 +69,19 @@ let to_parameter (p : Parameter.t) =
     } )
 
 let all_parameters (d : t) =
-  let add params (p : Parameter.t) =
-    if List.exists (fun (q : Parameter.t) -> String.equal p.name q.name) params
-    then params
+  let add params p =
+    let name = Parameter.name p in
+    if List.exists (fun q -> String.equal name (Parameter.name q)) params then
+      params
     else params @ [ p ]
   in
   List.fold_left add []
     (d.parameters
     @ List.concat_map (fun (r : Arm_resource.t) -> r.parameters) d.resources
     @ List.concat_map
-        (fun (o : Output.t) -> Arm_expression.parameters o.value)
+        (fun (o : Output.t) ->
+          let (Arm_expression.Any value) = o.value in
+          Arm_expression.parameters value)
         d.outputs)
 
 let to_output (o : Output.t) : string * output =
