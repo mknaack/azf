@@ -1,0 +1,17 @@
+{
+  "name": "azf",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {}
+  },
+  "remoteUser": "opam",
+  "postCreateCommand": "dune build",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ocamllabs.ocaml-platform"]
+    }
+  }
+}
