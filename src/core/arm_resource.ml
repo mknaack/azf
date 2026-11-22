@@ -13,9 +13,9 @@ type dependency = Resource_id.t
 
 let yojson_of_dependency id = Arm_expression.(yojson_of_t (Resource_id id))
 
-type location = string Arm_expression.t
+type string_expression = string Arm_expression.t
 
-let yojson_of_location = Arm_expression.yojson_of_t
+let yojson_of_string_expression = Arm_expression.yojson_of_t
 let is_empty = function [] -> true | _ :: _ -> false
 
 type t = {
@@ -35,8 +35,8 @@ type t = {
 type template_resource = {
   type_name : string; [@key "type"]
   api_version : string; [@key "apiVersion"]
-  name : string;
-  location : location option; [@yojson.option]
+  name : string_expression;
+  location : string_expression option; [@yojson.option]
   tags : tags; [@yojson_drop_if is_empty]
   sku : Sku.t option; [@yojson.option]
   kind : string option; [@yojson.option]
@@ -50,7 +50,7 @@ let yojson_of_t (t : t) =
     {
       type_name = t.type_name;
       api_version = t.api_version;
-      name = t.name;
+      name = String t.name;
       location = t.location;
       tags = t.tags;
       sku = t.sku;

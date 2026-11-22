@@ -104,6 +104,10 @@ let add_secure_setting key value =
 let add_secret_setting key =
   add_secure_setting key (Parameter (Parameter.secure_string key))
 
+let app_insights ai =
+  add_setting "APPLICATIONINSIGHTS_CONNECTION_STRING"
+    (App_insights.connection_string ai)
+
 let location location c = { c with location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
