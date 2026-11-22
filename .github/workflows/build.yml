@@ -29,10 +29,10 @@ jobs:
       - name: check example templates with bicep
         run: |
           set -o pipefail
-          for example in first_app storage_account web_app; do
+          for example in first_app storage_account web_app cosmos_db; do
             opam exec -- dune exec "examples/$example.exe"
           done
-          for template in myFirstTemplate storage_account web_app; do
+          for template in myFirstTemplate storage_account web_app cosmos_db; do
             "$RUNNER_TEMP/bicep" decompile "$template.json" --outfile "$RUNNER_TEMP/$template.bicep" 2>&1 | tee "$RUNNER_TEMP/$template.log"
             if grep -E ': (Warning|Error) BCP' "$RUNNER_TEMP/$template.log"; then
               exit 1

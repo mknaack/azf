@@ -1,6 +1,6 @@
 (executables
- (names first_app storage_account web_app)
- (modules first_app storage_account web_app)
+ (names first_app storage_account web_app cosmos_db)
+ (modules first_app storage_account web_app cosmos_db)
  (libraries azf azf.resources))
 
 (executable

@@ -82,6 +82,10 @@ val add_secret_setting : string -> config -> config
     parameter with the same name, so the value is supplied at deployment time
     instead of being stored in the template. *)
 
+val app_insights : App_insights.t -> config -> config
+(** Sets [APPLICATIONINSIGHTS_CONNECTION_STRING] to the resource's
+    {!App_insights.connection_string}, so the app sends telemetry to it. *)
+
 val location : Azf.Location.t -> config -> config
 (** Without it, the resource goes in the {!Arm.location} of its deployment, or
     else the resource group's location. *)
