@@ -168,23 +168,30 @@ let%expect_test "quick_write writes name.json" =
     }
     |}]
 
-let%expect_test "name expressions only match the same expression" =
-  let check names =
-    let result =
-      let* storage = Storage_account.(build [ name "mystorage" ]) in
-      let raw name : Arm_resource.t =
-        { (Storage_account.to_arm_resource storage) with name }
-      in
-      Arm.(build (List.map (fun n -> add_arm_resource (raw n)) names))
-    in
-    match result with
-    | Ok _ -> print_endline "ok"
-    | Error e -> print_endline (Error.to_string e)
+let%expect_test "bracketed names are literal and compared case-insensitively" =
+  let result =
+    let* logs = Log_analytics.(build [ name "logs" ]) in
+    let* prod = App_insights.(build [ name "[prod]"; workspace logs ]) in
+    let* prod' = App_insights.(build [ name "[PROD]"; workspace logs ]) in
+    Arm.(build [ add_resource logs; add_resource prod; add_resource prod' ])
   in
-  check [ "[base64('a')]"; "[base64('A')]" ];
-  check [ "[base64('a')]"; "[base64('a')]" ];
+  (match result with
+  | Ok _ -> print_endline "ok"
+  | Error e -> print_endline (Error.to_string e));
   [%expect
-    {|
-    ok
-    Resource Microsoft.Storage/storageAccounts "[base64('a')]" is added more than once
-    |}]
+    {| Resource Microsoft.Insights/components "[prod]" is added more than once |}]
+
+let%expect_test "a raw resource name starting with [ is emitted as a literal" =
+  let result =
+    let* storage = Storage_account.(build [ name "mystorage" ]) in
+    let raw : Arm_resource.t =
+      { (Storage_account.to_arm_resource storage) with name = "[base64('a')]" }
+    in
+    Arm.(build [ add_arm_resource raw ])
+  in
+  let template = Deployment.to_string (Result.get_ok result) in
+  print_endline
+    (List.find
+       (fun l -> String.starts_with ~prefix:"\"name\"" (String.trim l))
+       (String.split_on_char '\n' template));
+  [%expect {| "name": "[[base64('a')]", |}]

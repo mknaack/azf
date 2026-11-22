@@ -18,19 +18,12 @@ let add_arm_resource r = add_emit (fun ~location:_ -> [ r ])
 let add_parameter p c = { c with parameters = c.parameters @ [ p ] }
 let add_output o c = { c with outputs = c.outputs @ [ o ] }
 
-let is_expression name =
-  String.starts_with ~prefix:"[" name
-  && not (String.starts_with ~prefix:"[[" name)
-
-(* ARM resource types and literal names are case-insensitive. A name expression
-   can't be evaluated here, so it only matches the same expression. *)
+(* ARM resource types and names are case-insensitive. Names are always literal
+   (a name starting with "[" is escaped when serialized). *)
 let same_resource a b =
   let lower = String.lowercase_ascii in
-  let name_a = Resource_id.name a and name_b = Resource_id.name b in
   lower (Resource_id.type_name a) = lower (Resource_id.type_name b)
-  &&
-  if is_expression name_a || is_expression name_b then name_a = name_b
-  else lower name_a = lower name_b
+  && lower (Resource_id.name a) = lower (Resource_id.name b)
 
 let rec first_duplicate = function
   | [] -> None
