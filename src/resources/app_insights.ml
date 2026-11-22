@@ -6,16 +6,18 @@ type config = {
   workspace : Log_analytics.t option;
   sampling_percentage : float option;
   disable_ip_masking : bool;
-  location : Location.t;
+  location : Location.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
 
-type t = {
+type state = {
   component_name : string;
   workspace : Log_analytics.t;
   config : config;
 }
+
+type t = state Resource.t
 
 let type_name = "Microsoft.Insights/components"
 let api_version = "2020-02-02"
@@ -26,7 +28,7 @@ let default =
     workspace = None;
     sampling_percentage = None;
     disable_ip_masking = false;
-    location = Resource_group;
+    location = None;
     tags = [];
     depends_on = [];
   }
@@ -53,21 +55,6 @@ let validate_sampling = function
       Error (Error.App_insights (Invalid_sampling_percentage p))
   | _ -> Ok ()
 
-let ( let* ) = Result.bind
-
-let build transformers =
-  let config = List.fold_left (fun c f -> f c) default transformers in
-  let* name =
-    Option.to_result ~none:(Error.App_insights Missing_name) config.name
-  in
-  let* component_name = validate_name name in
-  let* workspace =
-    Option.to_result ~none:(Error.App_insights Missing_workspace)
-      config.workspace
-  in
-  let* () = validate_sampling config.sampling_percentage in
-  Ok { component_name; workspace; config }
-
 let name name c = { c with name = Some name }
 let workspace workspace (c : config) = { c with workspace = Some workspace }
 let sampling_percentage p c = { c with sampling_percentage = Some p }
@@ -75,11 +62,14 @@ let sampling_percentage p c = { c with sampling_percentage = Some p }
 let disable_ip_masking disable_ip_masking (c : config) =
   { c with disable_ip_masking }
 
-let location location c = { c with location }
+let location location c = { c with location = Some location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id t = Resource_id.make ~type_name t.component_name
+
+let resource_id t =
+  Resource_id.make ~type_name (Resource.state t).component_name
+
 let property t name = Arm_expression.Property (Reference (resource_id t), name)
 let instrumentation_key t = property t "InstrumentationKey"
 let connection_string t = property t "ConnectionString"
@@ -94,16 +84,20 @@ type properties = {
 }
 [@@deriving yojson_of]
 
-let to_arm_resource { component_name; workspace; config = c } : Arm_resource.t =
+let arm_resource { component_name; workspace; config = c } ~location :
+    Arm_resource.t =
+  let location =
+    Option.fold ~none:location ~some:Location.to_expression c.location
+  in
   let workspace_id =
     Arm_expression.Resource_id (Log_analytics.resource_id workspace)
   in
-  let expressions = [ Location.to_expression c.location; workspace_id ] in
+  let expressions = [ location; workspace_id ] in
   {
     type_name;
     api_version;
     name = component_name;
-    location = Some (Location.to_expression c.location);
+    location = Some location;
     tags = c.tags;
     sku = None;
     kind = Some "web";
@@ -120,3 +114,24 @@ let to_arm_resource { component_name; workspace; config = c } : Arm_resource.t =
           sampling_percentage = c.sampling_percentage;
         };
   }
+
+let emit state ~location = [ arm_resource state ~location ]
+let ( let* ) = Result.bind
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  let* name =
+    Option.to_result ~none:(Error.App_insights Missing_name) config.name
+  in
+  let* component_name = validate_name name in
+  let* workspace =
+    Option.to_result ~none:(Error.App_insights Missing_workspace)
+      config.workspace
+  in
+  let* () = validate_sampling config.sampling_percentage in
+  let state = { component_name; workspace; config } in
+  Ok (Resource.make state (emit state))
+
+let to_arm_resource t =
+  arm_resource (Resource.state t)
+    ~location:Arm_expression.resource_group_location

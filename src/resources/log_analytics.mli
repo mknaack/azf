@@ -11,21 +11,23 @@ type config = {
   name : string option;
   retention_days : int;
   daily_cap_gb : float option;
-  location : Azf.Location.t;
+  location : Azf.Location.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
 (** Builder state. Turned into a validated {!t} by {!build}. *)
 
-type t
+type state
+
+type t = state Resource.t
 (** A validated Log Analytics workspace. *)
 
 val type_name : string
 val api_version : string
 
 val default : config
-(** No name, 30 days retention, no daily cap, located in the resource group's
-    location. *)
+(** No name, 30 days retention, no daily cap, no location (see {!val-location}).
+*)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 4–63 characters, letters, digits and hyphens, starting and
@@ -42,6 +44,9 @@ val daily_cap_gb : float -> config -> config
 (** Stops ingestion for the day once this many GB have been ingested. *)
 
 val location : Azf.Location.t -> config -> config
+(** Without it, the resource goes in the {!Arm.location} of its deployment, or
+    else the resource group's location. *)
+
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

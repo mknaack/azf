@@ -43,6 +43,16 @@ module Web_app = struct
         Printf.sprintf "Python %s requires a Linux service plan" version
 end
 
+module Arm = struct
+  type t = Duplicate_resource of Azf.Resource_id.t
+
+  let to_string = function
+    | Duplicate_resource id ->
+        Printf.sprintf "Resource %s %S is added more than once"
+          (Azf.Resource_id.type_name id)
+          (Azf.Resource_id.name id)
+end
+
 module Log_analytics = struct
   type t =
     | Missing_name
@@ -168,6 +178,7 @@ type t =
   | Storage_account of Storage_account.t
   | Server_farm of Server_farm.t
   | Web_app of Web_app.t
+  | Arm of Arm.t
   | Log_analytics of Log_analytics.t
   | App_insights of App_insights.t
   | Cosmos_db of Cosmos_db.t
@@ -176,6 +187,7 @@ let to_string = function
   | Storage_account e -> Storage_account.to_string e
   | Server_farm e -> Server_farm.to_string e
   | Web_app e -> Web_app.to_string e
+  | Arm e -> Arm.to_string e
   | Log_analytics e -> Log_analytics.to_string e
   | App_insights e -> App_insights.to_string e
   | Cosmos_db e -> Cosmos_db.to_string e

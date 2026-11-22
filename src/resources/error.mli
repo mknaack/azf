@@ -29,6 +29,14 @@ module Web_app : sig
   val to_string : t -> string
 end
 
+module Arm : sig
+  type t =
+    | Duplicate_resource of Azf.Resource_id.t
+        (** Two resources with the same type and name. *)
+
+  val to_string : t -> string
+end
+
 module Log_analytics : sig
   type t =
     | Missing_name
@@ -77,6 +85,7 @@ type t =
   | Storage_account of Storage_account.t
   | Server_farm of Server_farm.t
   | Web_app of Web_app.t
+  | Arm of Arm.t
   | Log_analytics of Log_analytics.t
   | App_insights of App_insights.t
   | Cosmos_db of Cosmos_db.t

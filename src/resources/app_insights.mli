@@ -17,21 +17,23 @@ type config = {
   workspace : Log_analytics.t option;
   sampling_percentage : float option;
   disable_ip_masking : bool;
-  location : Azf.Location.t;
+  location : Azf.Location.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
 (** Builder state. Turned into a validated {!t} by {!build}. *)
 
-type t
+type state
+
+type t = state Resource.t
 (** A validated Application Insights resource. *)
 
 val type_name : string
 val api_version : string
 
 val default : config
-(** No name or workspace, no sampling (all telemetry kept), IP masking on,
-    located in the resource group's location. *)
+(** No name or workspace, no sampling (all telemetry kept), IP masking on, no
+    location (see {!val-location}). *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 1–260 characters, none of [% & \ ? /] or control characters,
@@ -52,6 +54,9 @@ val disable_ip_masking : bool -> config -> config
 (** Stores client IP addresses instead of masking them. *)
 
 val location : Azf.Location.t -> config -> config
+(** Without it, the resource goes in the {!Arm.location} of its deployment, or
+    else the resource group's location. *)
+
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

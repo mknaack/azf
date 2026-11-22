@@ -194,12 +194,13 @@ type config = {
   capacity_mode : Capacity_mode.t;
   free_tier : bool;
   databases : Database.t list;
-  location : Location.t;
+  location : Location.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
 
-type t = { account_name : string; config : config }
+type state = { account_name : string; config : config }
+type t = state Resource.t
 
 let type_name = "Microsoft.DocumentDB/databaseAccounts"
 let database_type_name = type_name ^ "/sqlDatabases"
@@ -213,7 +214,7 @@ let default =
     capacity_mode = Capacity_mode.Provisioned;
     free_tier = false;
     databases = [];
-    location = Resource_group;
+    location = None;
     tags = [];
     depends_on = [];
   }
@@ -250,31 +251,17 @@ let check_serverless (c : config) =
   | Serverless, name :: _ -> error (Throughput_on_serverless name)
   | _ -> Ok ()
 
-let build transformers =
-  let config = List.fold_left (fun c f -> f c) default transformers in
-  let* name =
-    Option.to_result ~none:(Error.Cosmos_db Missing_name) config.name
-  in
-  let* account_name = validate_name name in
-  let* () = Consistency.validate config.consistency in
-  let* () =
-    no_duplicates
-      (fun n -> Error.Cosmos_db.Duplicate_database n)
-      (List.map (fun (db : Database.t) -> db.database_name) config.databases)
-  in
-  let* () = check_serverless config in
-  Ok { account_name; config }
-
 let name name c = { c with name = Some name }
 let consistency consistency c = { c with consistency }
 let capacity_mode capacity_mode c = { c with capacity_mode }
 let free_tier free_tier c = { c with free_tier }
 let add_database db c = { c with databases = c.databases @ [ db ] }
-let location location c = { c with location }
+let location location c = { c with location = Some location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id t = Resource_id.make ~type_name t.account_name
+let state_resource_id state = Resource_id.make ~type_name state.account_name
+let resource_id t = state_resource_id (Resource.state t)
 
 let endpoint t =
   Arm_expression.Property (Reference (resource_id t), "documentEndpoint")
@@ -387,18 +374,21 @@ let database_resources ~account_id ~account_name (db : Database.t) =
           ~database_path)
        db.config.containers
 
-let account_resource { account_name; config = c } : Arm_resource.t =
+let account_resource { account_name; config = c } ~location : Arm_resource.t =
+  let location =
+    Option.fold ~none:location ~some:Location.to_expression c.location
+  in
   {
     type_name;
     api_version;
     name = account_name;
-    location = Some (Location.to_expression c.location);
+    location = Some location;
     tags = c.tags;
     sku = None;
     kind = Some "GlobalDocumentDB";
     depends_on = c.depends_on;
-    references = Arm_expression.resource_ids (Location.to_expression c.location);
-    parameters = Arm_expression.parameters (Location.to_expression c.location);
+    references = Arm_expression.resource_ids location;
+    parameters = Arm_expression.parameters location;
     properties =
       yojson_of_properties
         {
@@ -407,7 +397,7 @@ let account_resource { account_name; config = c } : Arm_resource.t =
           locations =
             [
               {
-                location_name = Location.to_expression c.location;
+                location_name = location;
                 failover_priority = 0;
                 is_zone_redundant = false;
               };
@@ -420,9 +410,28 @@ let account_resource { account_name; config = c } : Arm_resource.t =
         };
   }
 
-let to_arm_resources t =
-  account_resource t
+let emit state ~location =
+  account_resource state ~location
   :: List.concat_map
-       (database_resources ~account_id:(resource_id t)
-          ~account_name:t.account_name)
-       t.config.databases
+       (database_resources ~account_id:(state_resource_id state)
+          ~account_name:state.account_name)
+       state.config.databases
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  let* name =
+    Option.to_result ~none:(Error.Cosmos_db Missing_name) config.name
+  in
+  let* account_name = validate_name name in
+  let* () = Consistency.validate config.consistency in
+  let* () =
+    no_duplicates
+      (fun n -> Error.Cosmos_db.Duplicate_database n)
+      (List.map (fun (db : Database.t) -> db.database_name) config.databases)
+  in
+  let* () = check_serverless config in
+  let state = { account_name; config } in
+  Ok (Resource.make state (emit state))
+
+let to_arm_resources t =
+  emit (Resource.state t) ~location:Arm_expression.resource_group_location

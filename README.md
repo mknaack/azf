@@ -3,17 +3,19 @@
 An OCaml port of [Farmer](https://compositionalit.github.io/farmer/): describe Azure resources with composable builders and emit ARM template JSON.
 
 ```ocaml
-open Azf
 open Azf_resources
 
-let template =
-  Storage_account.(build [ name "mystorage"; sku Standard_GRS; location West_europe; add_tag "env" "dev" ])
-  |> Result.map (fun storage ->
-         Deployment.(build [ add_resource (Storage_account.to_arm_resource storage) ])
-         |> Deployment.to_string)
+let ( let* ) = Result.bind
+
+let deployment =
+  let* plan = Server_farm.(build [ name "yourFirstAzfApp-farm" ]) in
+  let* app = Web_app.(build [ name "yourFirstAzfApp"; service_plan plan ]) in
+  Arm.(build [ location North_europe; add_resource plan; add_resource app ])
+
+let () = Arm.quick_write "myFirstTemplate" deployment
 ```
 
-Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits). All builders share `Azf_resources.Error.t`, so they combine with `let*`.
+Builders validate their input, so `build` returns a `result` (e.g. storage account names must be 3–24 lowercase letters and digits). All builders share `Azf_resources.Error.t`, so they combine with `let*`. `Arm.build` collects the built resources into a `Deployment.t` (rejecting duplicates), and its `location` applies to every resource built without its own. `Arm.quick_write` writes `myFirstTemplate.json`, printing the error and exiting on failure; use `Deployment.to_string` or `Deployment.write_file` to handle errors yourself.
 
 Dependencies and parameters are worked out from the expressions resources use: a web app whose settings use a storage account's connection string gets that account in its `dependsOn`, and `Web_app.add_secret_setting "DB_PASSWORD"` adds a `securestring` parameter to the template.
 
@@ -64,7 +66,8 @@ The [dev container](.devcontainer/devcontainer.json) has OCaml 5.3, the dependen
 opam install . --deps-only --with-test --with-doc
 dune build
 dune runtest                  # expect tests; accept changes with --auto-promote
-dune exec examples/storage_account.exe
-dune exec examples/web_app.exe
-DB_PASSWORD=... dune exec examples/web_app.exe -- deploy my-rg westeurope
+dune exec examples/first_app.exe         # writes myFirstTemplate.json
+dune exec examples/storage_account.exe   # writes storage_account.json
+dune exec examples/web_app.exe           # writes web_app.json
+DB_PASSWORD=... dune exec examples/deploy.exe -- my-rg westeurope
 ```

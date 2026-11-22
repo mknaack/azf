@@ -116,13 +116,15 @@ type config = {
   capacity_mode : Capacity_mode.t;
   free_tier : bool;
   databases : Database.t list;
-  location : Azf.Location.t;
+  location : Azf.Location.t option;
   tags : (string * string) list;
   depends_on : Azf.Resource_id.t list;
 }
 (** Builder state. Turned into a validated {!t} by {!build}. *)
 
-type t
+type state
+
+type t = state Resource.t
 (** A validated Cosmos DB account. *)
 
 val type_name : string
@@ -132,7 +134,7 @@ val api_version : string
 
 val default : config
 (** No name or databases, [Session] consistency, provisioned capacity, no free
-    tier, located in the resource group's location. *)
+    tier, no location (see {!val-location}). *)
 
 val validate_name : string -> (string, Error.t) result
 (** Azure's rule: 3–44 characters, lowercase letters, digits and hyphens, not
@@ -151,7 +153,11 @@ val free_tier : bool -> config -> config
 (** One free-tier account is allowed per subscription. *)
 
 val add_database : Database.t -> config -> config
+
 val location : Azf.Location.t -> config -> config
+(** Without it, the resource goes in the {!Arm.location} of its deployment, or
+    else the resource group's location. *)
+
 val add_tag : string -> string -> config -> config
 val add_tags : (string * string) list -> config -> config
 val depends_on : Azf.Resource_id.t -> config -> config

@@ -5,12 +5,13 @@ type config = {
   name : string option;
   retention_days : int;
   daily_cap_gb : float option;
-  location : Location.t;
+  location : Location.t option;
   tags : (string * string) list;
   depends_on : Resource_id.t list;
 }
 
-type t = { workspace_name : string; config : config }
+type state = { workspace_name : string; config : config }
+type t = state Resource.t
 
 let type_name = "Microsoft.OperationalInsights/workspaces"
 let api_version = "2023-09-01"
@@ -20,7 +21,7 @@ let default =
     name = None;
     retention_days = 30;
     daily_cap_gb = None;
-    location = Resource_group;
+    location = None;
     tags = [];
     depends_on = [];
   }
@@ -54,25 +55,16 @@ let validate_daily_cap = function
   | _ -> Ok ()
 
 let ( let* ) = Result.bind
-
-let build transformers =
-  let config = List.fold_left (fun c f -> f c) default transformers in
-  let* name =
-    Option.to_result ~none:(Error.Log_analytics Missing_name) config.name
-  in
-  let* workspace_name = validate_name name in
-  let* _ = validate_retention config.retention_days in
-  let* () = validate_daily_cap config.daily_cap_gb in
-  Ok { workspace_name; config }
-
 let name name c = { c with name = Some name }
 let retention_days retention_days c = { c with retention_days }
 let daily_cap_gb gb c = { c with daily_cap_gb = Some gb }
-let location location c = { c with location }
+let location location c = { c with location = Some location }
 let add_tags tags c = { c with tags = c.tags @ tags }
 let add_tag key value = add_tags [ (key, value) ]
 let depends_on id c = { c with depends_on = c.depends_on @ [ id ] }
-let resource_id t = Resource_id.make ~type_name t.workspace_name
+
+let resource_id t =
+  Resource_id.make ~type_name (Resource.state t).workspace_name
 
 let customer_id t =
   Arm_expression.Property (Reference (resource_id t), "customerId")
@@ -90,18 +82,21 @@ type properties = {
 }
 [@@deriving yojson_of]
 
-let to_arm_resource { workspace_name; config = c } : Arm_resource.t =
+let arm_resource { workspace_name; config = c } ~location : Arm_resource.t =
+  let location =
+    Option.fold ~none:location ~some:Location.to_expression c.location
+  in
   {
     type_name;
     api_version;
     name = workspace_name;
-    location = Some (Location.to_expression c.location);
+    location = Some location;
     tags = c.tags;
     sku = None;
     kind = None;
     depends_on = c.depends_on;
-    references = Arm_expression.resource_ids (Location.to_expression c.location);
-    parameters = Arm_expression.parameters (Location.to_expression c.location);
+    references = Arm_expression.resource_ids location;
+    parameters = Arm_expression.parameters location;
     properties =
       yojson_of_properties
         {
@@ -111,3 +106,20 @@ let to_arm_resource { workspace_name; config = c } : Arm_resource.t =
             Option.map (fun daily_quota_gb -> { daily_quota_gb }) c.daily_cap_gb;
         };
   }
+
+let emit state ~location = [ arm_resource state ~location ]
+
+let build transformers =
+  let config = List.fold_left (fun c f -> f c) default transformers in
+  let* name =
+    Option.to_result ~none:(Error.Log_analytics Missing_name) config.name
+  in
+  let* workspace_name = validate_name name in
+  let* _ = validate_retention config.retention_days in
+  let* () = validate_daily_cap config.daily_cap_gb in
+  let state = { workspace_name; config } in
+  Ok (Resource.make state (emit state))
+
+let to_arm_resource t =
+  arm_resource (Resource.state t)
+    ~location:Arm_expression.resource_group_location

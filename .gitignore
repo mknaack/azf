@@ -34,3 +34,9 @@ setup.log
 
 # Local OPAM switch
 _opam/
+
+# Templates written by the examples
+/myFirstTemplate.json
+/storage_account.json
+/web_app.json
+/cosmos_db.json
