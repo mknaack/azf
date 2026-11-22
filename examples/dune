@@ -7,3 +7,8 @@
  (name web_app)
  (modules web_app)
  (libraries azf azf.resources azf.deploy))
+
+(executable
+ (name cosmos_db)
+ (modules cosmos_db)
+ (libraries azf azf.resources))

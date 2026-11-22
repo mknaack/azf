@@ -51,7 +51,8 @@ let call name args = name ^ "(" ^ String.concat ", " args ^ ")"
 
 let resource_id_call id =
   call "resourceId"
-    [ quote (Resource_id.type_name id); quote (Resource_id.name id) ]
+    (quote (Resource_id.type_name id)
+    :: List.map quote (String.split_on_char '/' (Resource_id.name id)))
 
 let rec inner : type a. a t -> string = function
   | String s -> quote s

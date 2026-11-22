@@ -12,6 +12,15 @@ let%expect_test "literal strings" =
     [[not an expression]
     |}]
 
+let%expect_test "child resource ids have one argument per name segment" =
+  print_expr
+    (Resource_id
+       (Resource_id.make
+          ~type_name:"Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
+          "myaccount/mydb"));
+  [%expect
+    {| [resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', 'myaccount', 'mydb')] |}]
+
 let%expect_test "expressions" =
   print_expr (Parameter (Parameter.string "appName"));
   print_expr (Variables "prefix");

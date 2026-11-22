@@ -19,6 +19,22 @@ Dependencies and parameters are worked out from the expressions resources use: a
 
 Expressions are typed by the ARM value they produce (`string Arm_expression.t`, `int Arm_expression.t`, `Arm_type.secure_string Arm_expression.t`, ...). Secrets such as `Storage_account.connection_string` are `secure_string`s: they go into app settings with `Web_app.add_secure_setting`, and the compiler rejects them as template outputs.
 
+## Resources
+
+| Module | ARM type |
+| --- | --- |
+| `Storage_account` | `Microsoft.Storage/storageAccounts` |
+| `Server_farm` | `Microsoft.Web/serverfarms` |
+| `Web_app` | `Microsoft.Web/sites` |
+| `Cosmos_db` | `Microsoft.DocumentDB/databaseAccounts` (NoSQL), with `sqlDatabases` and `containers` |
+
+```ocaml
+let* orders = Cosmos_db.Container.(build [ name "orders"; partition_key [ "/customerId" ] ]) in
+let* shop = Cosmos_db.Database.(build [ name "shop"; throughput (Autoscale 1000); add_container orders ]) in
+let* cosmos = Cosmos_db.(build [ name "mycosmos"; add_database shop ]) in
+(* Deployment.add_resources (Cosmos_db.to_arm_resources cosmos) *)
+```
+
 ## Deploying
 
 `azf.deploy` deploys a template with the [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az login` first). Parameter values are passed in a temporary parameters file, so secrets stay off the command line:

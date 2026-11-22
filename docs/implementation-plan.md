@@ -39,7 +39,8 @@ azf/
 │   │   ├── dune
 │   │   ├── storage_account.ml(i)
 │   │   ├── server_farm.ml(i)
-│   │   └── web_app.ml(i)
+│   │   ├── web_app.ml(i)
+│   │   └── cosmos_db.ml(i)
 │   └── deploy/                 # library `azf.deploy` (module Azf_deploy)
 │       ├── dune
 │       └── az_cli.ml(i)        # Azf_deploy.Az_cli: validate / what_if / create via the `az` CLI
@@ -67,7 +68,7 @@ azf/
 - `Deployment.to_string : Deployment.t -> string` producing a valid ARM template (`https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#`).
 - `Arm_expression` AST for ARM template functions (`resourceId`, `concat`, `reference`, `parameters`, `variables`) that serializes to `"[resourceId('Microsoft.Web/sites', name)]"` strings.
   - `'a Arm_expression.t` is a GADT indexed by the ARM value type: `string`, `int`, `bool`, or `Arm_type.secure_string` / `array_` / `object_` / `secure_object`. Literals, `Parameter`, `Concat`, `Resource_id` and `Reference` have fixed types; `Variables`, `Property` and `Call` are escape hatches whose type the caller (usually a resource helper) states. `Call` takes `Arm_expression.any` arguments.
-  - Outputs take typed expressions (`Output.int` an `int t`, ...) and have no secure variant, so secrets such as `Storage_account.connection_string` (a `secure_string t`) cannot be written to the deployment history. `Web_app.add_setting` takes a `string t`, `add_secure_setting` a `secure_string t`.
+  - Outputs take typed expressions (`Output.int` an `int t`, ...) and have no secure variant, so secrets such as `Storage_account.connection_string` and `Cosmos_db.primary_key` / `connection_string` (`secure_string t`s) cannot be written to the deployment history. `Web_app.add_setting` takes a `string t`, `add_secure_setting` a `secure_string t`.
 
 ## 4. Resources (incremental)
 
@@ -75,6 +76,10 @@ Start with 2–3 resources to validate the design:
 
 - `Microsoft.Storage/storageAccounts`
 - `Microsoft.Web/serverfarms` + `Microsoft.Web/sites` (Farmer's canonical example, proves dependencies)
+
+Then broaden coverage (milestone 5):
+
+- `Microsoft.DocumentDB/databaseAccounts` with SQL databases and containers (`Cosmos_db`, `Cosmos_db.Database`, `Cosmos_db.Container`). Child resources use `parent/child` names; `resourceId()` gets one argument per segment, and each child references its parent so `dependsOn` is inferred.
 
 Each resource module: a `config` record with defaults, transformer functions (`name`, `sku`, `add_tags`, `depends_on`), a `to_arm_resource` function, and one submodule per option type (e.g. `Storage_account.Sku`, `Kind`), each with its own `t` and `to_string`. `build` returns `(t, Error.t) result` with one `Azf_resources.Error.t` shared by all builders (a constructor per resource, each wrapping that resource's own errors), so builders combine with `let*`. Use a typed `ResourceId` for cross-resource references so `depends_on` isn't stringly-typed.
 

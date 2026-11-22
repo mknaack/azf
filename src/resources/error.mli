@@ -29,9 +29,34 @@ module Web_app : sig
   val to_string : t -> string
 end
 
+module Cosmos_db : sig
+  type t =
+    | Missing_name
+    | Invalid_name of string
+    | Invalid_bounded_staleness of {
+        max_staleness_prefix : int;
+        max_interval_seconds : int;
+      }
+    | Duplicate_database of string
+    | Throughput_on_serverless of string
+    | Missing_database_name
+    | Invalid_database_name of string
+    | Invalid_provisioned_throughput of int
+    | Invalid_autoscale_throughput of int
+    | Duplicate_container of string
+    | Missing_container_name
+    | Invalid_container_name of string
+    | Missing_partition_key of string
+    | Invalid_partition_key of string list
+    | Invalid_default_ttl of int
+
+  val to_string : t -> string
+end
+
 type t =
   | Storage_account of Storage_account.t
   | Server_farm of Server_farm.t
   | Web_app of Web_app.t
+  | Cosmos_db of Cosmos_db.t
 
 val to_string : t -> string
