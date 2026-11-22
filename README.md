@@ -58,6 +58,8 @@ See [`docs/implementation-plan.md`](docs/implementation-plan.md) for the design 
 
 ## Development
 
+The [dev container](.devcontainer/devcontainer.json) has OCaml 5.3, the dependencies, ocaml-lsp, ocamlformat, the Azure CLI and Bicep: open the repo in VS Code and pick *Reopen in Container*, or run `devcontainer up --workspace-folder .`. Otherwise:
+
 ```sh
 opam install . --deps-only --with-test --with-doc
 dune build
